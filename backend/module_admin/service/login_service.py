@@ -308,7 +308,7 @@ class LoginService:
             if permission.parent_id == pid:
                 children = cls.__generate_user_router_menu(permission.menu_id, permission_list)
                 router_list_data = {}
-                if permission.menu_type == 'M':
+                if permission.menu_type == 'M':  # 目录
                     router_list_data['name'] = permission.path.capitalize()
                     router_list_data['hidden'] = False if permission.visible == '0' else True
 
@@ -334,7 +334,7 @@ class LoginService:
                         'noCache': False if permission.is_cache == '0' else True,
                         'link': permission.path if permission.is_frame == 0 else None
                     }
-                elif permission.menu_type == 'C':
+                elif permission.menu_type == 'C':  # 菜单
                     router_list_data['name'] = permission.path.capitalize()
                     router_list_data['path'] = permission.path
                     router_list_data['query'] = permission.query
@@ -347,7 +347,6 @@ class LoginService:
                         'link': permission.path if permission.is_frame == 0 else None
                     }
                 router_list.append(router_list_data)
-
         return router_list
 
     @classmethod
