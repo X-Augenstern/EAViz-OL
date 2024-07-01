@@ -94,7 +94,8 @@ class UserDao:
             query_user_menu_info = db.query(SysMenu).select_from(SysUser) \
                 .filter(SysUser.status == 0, SysUser.del_flag == 0, SysUser.user_id == user_id) \
                 .outerjoin(SysUserRole, SysUser.user_id == SysUserRole.user_id) \
-                .outerjoin(SysRole, and_(SysUserRole.role_id == SysRole.role_id, SysRole.status == 0, SysRole.del_flag == 0)) \
+                .outerjoin(SysRole,
+                           and_(SysUserRole.role_id == SysRole.role_id, SysRole.status == 0, SysRole.del_flag == 0)) \
                 .outerjoin(SysRoleMenu, SysRole.role_id == SysRoleMenu.role_id) \
                 .join(SysMenu, and_(SysRoleMenu.menu_id == SysMenu.menu_id, SysMenu.status == 0)) \
                 .order_by(SysMenu.order_num) \
@@ -142,7 +143,8 @@ class UserDao:
         query_user_menu_info = db.query(SysMenu).select_from(SysUser) \
             .filter(SysUser.del_flag == 0, SysUser.user_id == user_id) \
             .outerjoin(SysUserRole, SysUser.user_id == SysUserRole.user_id) \
-            .outerjoin(SysRole, and_(SysUserRole.role_id == SysRole.role_id, SysRole.status == 0, SysRole.del_flag == 0)) \
+            .outerjoin(SysRole,
+                       and_(SysUserRole.role_id == SysRole.role_id, SysRole.status == 0, SysRole.del_flag == 0)) \
             .outerjoin(SysRoleMenu, SysRole.role_id == SysRoleMenu.role_id) \
             .join(SysMenu, and_(SysRoleMenu.menu_id == SysMenu.menu_id, SysMenu.status == 0)) \
             .distinct().all()
@@ -284,7 +286,8 @@ class UserDao:
         return allocated_role_list
 
     @classmethod
-    def get_user_role_allocated_list_by_role_id(cls, db: Session, query_object: UserRolePageQueryModel, is_page: bool = False):
+    def get_user_role_allocated_list_by_role_id(cls, db: Session, query_object: UserRolePageQueryModel,
+                                                is_page: bool = False):
         """
         根据角色id获取角色已分配的用户列表信息
         :param db: orm对象
@@ -308,7 +311,8 @@ class UserDao:
         return allocated_user_list
 
     @classmethod
-    def get_user_role_unallocated_list_by_role_id(cls, db: Session, query_object: UserRolePageQueryModel, is_page: bool = False):
+    def get_user_role_unallocated_list_by_role_id(cls, db: Session, query_object: UserRolePageQueryModel,
+                                                  is_page: bool = False):
         """
         根据角色id获取未分配的用户列表信息
         :param db: orm对象
