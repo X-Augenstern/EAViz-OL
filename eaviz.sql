@@ -441,7 +441,6 @@ create table sys_user_post
 -- ----------------------------
 insert into sys_user_post values ('1', '1');
 insert into sys_user_post values ('2', '2');
-insert into sys_user_post values ('3', '2');
 
 
 -- ----------------------------
