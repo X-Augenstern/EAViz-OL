@@ -62,8 +62,10 @@ class UploadSettings:
     """
     上传配置
     """
+    # 在生成文件的 URL 时提供了一个前缀路径，这通常用于区分文件的存储位置和访问路径。
+    # 例如，在 web 应用中，文件可能存储在服务器的某个目录中，但通过 HTTP 访问时，需要一个特定的路径前缀来路由请求到正确的文件位置。（比如头像）
     UPLOAD_PREFIX = '/profile'
-    UPLOAD_PATH = 'eaviz/upload_path'
+    UPLOAD_PATH = 'files/upload_path'
     UPLOAD_MACHINE = 'A'
     DEFAULT_ALLOWED_EXTENSION = [
         # 图片
@@ -75,9 +77,11 @@ class UploadSettings:
         # 视频格式
         "mp4", "avi", "rmvb",
         # pdf
-        "pdf"
+        "pdf",
+        # EDF文件
+        "edf"
     ]
-    DOWNLOAD_PATH = 'eaviz/download_path'
+    DOWNLOAD_PATH = 'files/download_path'
 
     def __init__(self):
         if not path.exists(self.UPLOAD_PATH):
@@ -98,7 +102,8 @@ class RedisInitKeyConfig:
     """
     系统内置Redis键名
     """
-    ACCESS_TOKEN = {'key': 'access_token', 'remark': '登录令牌信息'}  # full key：access_token:session_id/user_id | value：token
+    ACCESS_TOKEN = {'key': 'access_token',
+                    'remark': '登录令牌信息'}  # full key：access_token:session_id/user_id | value：token
     SYS_DICT = {'key': 'sys_dict', 'remark': '数据字典'}
     SYS_CONFIG = {'key': 'sys_config', 'remark': '配置信息'}
     CAPTCHA_CODES = {'key': 'captcha_codes', 'remark': '图片验证码'}  # full key：captcha_codes:uuid | value：code
@@ -108,10 +113,25 @@ class RedisInitKeyConfig:
     SMS_CODE = {'key': 'sms_code', 'remark': '短信验证码'}  # full key：sms_code:session_id | value：sms_code
 
 
+class EAVizSettings:
+    """
+    EAViz配置
+    """
+    item_name = ['ESC', 'SD']
+    cp_address = {  # item_name:cp_address
+        'ESC': 'eaviz/ESC_SD/ESC/A3D-EEG_epoch-19.pth.tar',
+        'SD': 'eaviz/ESC_SD/SD/0.15-EEG_epoch-19.pth.tar',
+        'HFO': 'eaviz/HFO/model_weights.pth',
+        'VD1': 'eaviz/VD/yolov5l_best.pt',
+        'VD2': 'eaviz/VD/3d_Resnet_best.pth',
+    }
+
+
 class GetConfig:
     """
     获取配置
     """
+
     def __init__(self):
         self.parse_cli_args()
 
@@ -154,6 +174,10 @@ class GetConfig:
         """
         # 实例上传配置
         return UploadSettings()
+
+    @lru_cache()
+    def get_eaviz_config(self):
+        return EAVizSettings()
 
     @staticmethod
     def parse_cli_args():
@@ -199,3 +223,5 @@ DataBaseConfig = get_config.get_database_config()
 RedisConfig = get_config.get_redis_config()
 # 上传配置
 UploadConfig = get_config.get_upload_config()
+# EAViz配置
+EAVizConfig = get_config.get_eaviz_config()

@@ -4,6 +4,7 @@ from config.env import AppConfig
 from config.get_db import init_create_table
 from config.get_redis import RedisUtil
 from config.get_scheduler import SchedulerUtil
+from config.get_model import ModelUtil
 from fastapi import FastAPI
 from sub_applications.handle import handle_sub_applications
 from middlewares.handle import handle_middleware
@@ -19,11 +20,14 @@ from module_admin.controller.dict_controller import dictController
 from module_admin.controller.config_controller import configController
 from module_admin.controller.notice_controller import noticeController
 from module_admin.controller.log_controller import logController
+from module_admin.controller.edf_controller import edfController
 from module_admin.controller.online_controller import onlineController
 from module_admin.controller.job_controller import jobController
 from module_admin.controller.server_controller import serverController
 from module_admin.controller.cache_controller import cacheController
 from module_admin.controller.common_controller import commonController
+
+
 # from utils.common_util import worship
 
 
@@ -44,6 +48,7 @@ async def lifespan(app: FastAPI):
     await RedisUtil.init_sys_dict(app.state.redis)
     await RedisUtil.init_sys_config(app.state.redis)
     await SchedulerUtil.init_system_scheduler()
+    app.state.models = await ModelUtil.init_models()
     logger.info(f"{AppConfig.app_name}启动成功")
     yield
     await RedisUtil.close_redis_pool(app)
@@ -65,7 +70,6 @@ handle_middleware(app)
 # 加载全局异常处理方法
 handle_exception(app)
 
-
 # 加载路由列表
 controller_list = [
     {'router': loginController, 'tags': ['登录模块']},
@@ -79,6 +83,7 @@ controller_list = [
     {'router': configController, 'tags': ['系统管理-参数管理']},
     {'router': noticeController, 'tags': ['系统管理-通知公告管理']},
     {'router': logController, 'tags': ['系统管理-日志管理']},
+    {'router': edfController, 'tags': ['系统管理-EDF管理']},
     {'router': onlineController, 'tags': ['系统监控-在线用户']},
     {'router': jobController, 'tags': ['系统监控-定时任务']},
     {'router': serverController, 'tags': ['系统监控-菜单管理']},
