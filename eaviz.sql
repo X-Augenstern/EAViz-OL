@@ -70,10 +70,10 @@ create table sys_user (
 ) engine=innodb auto_increment=100 comment = '用户信息表';
 
 -- ----------------------------
--- 初始化-用户信息表数据
+-- 初始化-用户信息表数据 admin admin123 xzzzz 111111
 -- ----------------------------
 insert into sys_user values(1,  103, 'admin',   '超级管理员', '00', 'admin@163.com', '15888888888', '1', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', sysdate(), 'admin', sysdate(), '', null, '管理员');
-insert into sys_user values(2,  105, 'xzzzz',   '测试员',     '00', 'xzzzz@qq.com',  '15666666666', '1', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', sysdate(), 'admin', sysdate(), '', null, '测试员');
+insert into sys_user values(2,  105, 'xzzzz',   '测试员',     '00', 'xzzzz@qq.com',  '15666666666', '1', '', '$2b$12$mteHL3XUpoIABIy0rJrOlOt7HNEppKnL17zaoHjQkXUNPVCzocX2q', '0', '0', '127.0.0.1', sysdate(), 'admin', sysdate(), '', null, '测试员');
 
 
 -- ----------------------------

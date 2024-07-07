@@ -111,6 +111,7 @@ class UserService:
                 if page_object.type != 'status' and page_object.type != 'avatar':
                     UserDao.delete_user_role_dao(query_db, UserRoleModel(userId=page_object.user_id))
                     UserDao.delete_user_post_dao(query_db, UserPostModel(userId=page_object.user_id))
+                    # todo 如果仅仅是重置密码，不会提供岗位、角色选项，所以重置后就会导致该用户失去原有的岗位、角色，需要为其重新赋上
                     if page_object.role_ids:
                         for role in page_object.role_ids:
                             UserDao.add_user_role_dao(query_db, UserRoleModel(userId=page_object.user_id, roleId=role))

@@ -16,9 +16,10 @@ class UploadResponseModel(BaseModel):
     """
     上传响应模型
     """
-    model_config = ConfigDict(alias_generator=to_camel)
+    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
     file_name: Optional[str] = None
     new_file_name: Optional[str] = None
     original_filename: Optional[str] = None
     url: Optional[str] = None
+    file_path: Optional[str] = None

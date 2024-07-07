@@ -257,15 +257,17 @@ async def change_system_user_profile_avatar(request: Request, avatarfile: bytes 
         except FileExistsError:
             pass
         avatar_name = f'avatar_{datetime.now().strftime("%Y%m%d%H%M%S")}{UploadConfig.UPLOAD_MACHINE}{UploadUtil.generate_random_number()}.png'
-        # 用户上传的头像将被存储于服务器路径：eaviz/upload_path/avatar/2024/05/29/avatar_20240529123045A001.png
+        # 用户上传的头像将被存储于服务器路径：files/upload_path/avatar/2024/05/29/avatar_20240529123045A001.png
         avatar_path = path.join(dir_path, avatar_name)
         with open(avatar_path, 'wb') as f:
             f.write(avatarfile)
         edit_user = EditUserModel(
             userId=current_user.user.user_id,
-            # 假设应用程序的根路径是 http://example.com，那么生成的头像 URL 将是
-            # http://example.com/profile/avatar/2024/05/29/avatar_20240529123045A001.png
-            # 前端可以通过 URL 访问该头像文件
+            # /profile/avatar/2024/07/07/avatar_20240707150538A004.png
+            # 前端获取到后 -> /dev-api/profile/avatar/2024/07/07/avatar_20240707150538A004.png
+            # 前端根据此url从后端获取资源 -> rewrite -> /profile/avatar/2024/07/07/avatar_20240707150538A004.png
+            # 代理发送至后端服务器 http://localhost:9099
+            # 后端将/profile映射为files/upload_path -> files/upload_path/avatar/2024/07/07/avatar_20240707150538A004.png
             avatar=f'{UploadConfig.UPLOAD_PREFIX}/{relative_path}/{avatar_name}',
             updateBy=current_user.user.user_name,
             updateTime=datetime.now(),
