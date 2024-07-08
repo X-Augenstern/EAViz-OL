@@ -17,12 +17,14 @@ edfController = APIRouter(prefix='/system/edf', dependencies=[Depends(LoginServi
 @edfController.get("/list", response_model=PageResponseModel,
                    dependencies=[Depends(CheckUserInterfaceAuth('system:edf:list'))])
 async def get_system_edf_list(request: Request, edf_page_query: EdfPageQueryModel = Depends(EdfPageQueryModel.as_query),
-                              query_db: Session = Depends(get_db)):
+                              query_db: Session = Depends(get_db),
+                              current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
     """
     获取Edf列表分页数据
     """
     try:
-        edf_page_query_result = EdfService.get_edf_list_services(query_db, edf_page_query, is_page=True)
+        edf_page_query_result = EdfService.get_edf_list_services(query_db, current_user.user.user_id, edf_page_query,
+                                                                 is_page=True)
         logger.info('获取成功')
         return ResponseUtil.success(model_content=edf_page_query_result)
     except Exception as e:

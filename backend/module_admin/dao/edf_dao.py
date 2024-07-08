@@ -20,11 +20,14 @@ class EdfDao:
         return edf_info
 
     @classmethod
-    def get_edf_list(cls, db: Session, query_object: EdfPageQueryModel, is_page: bool = False):
+    def get_edf_list(cls, db: Session, user_id: int, query_object: EdfPageQueryModel, is_page: bool = False):
         """
         根据查询参数（edf名字、上传者、上传时间）获取edf列表信息
         """
         conditions = []
+
+        if user_id != 1:
+            conditions.append(SysEdfUser.user_id == user_id)
         if query_object.edf_name:
             conditions.append(SysEdf.edf_name.like(f'%{query_object.edf_name}%'))
         if query_object.upload_by:
@@ -36,7 +39,11 @@ class EdfDao:
                 datetime.combine(datetime.strptime(query_object.end_time, '%Y-%m-%d'),
                                  time(23, 59, 59))))
 
-        query = db.query(SysEdf).filter(and_(*conditions)).order_by(SysEdf.edf_id).distinct()
+        query = (db.query(SysEdf)
+                 .join(SysEdfUser, and_(SysEdf.edf_id == SysEdfUser.edf_id))
+                 .filter(and_(*conditions))
+                 .order_by(SysEdf.edf_id)
+                 .distinct())
 
         edf_list = PageUtil.paginate(query, query_object.page_num, query_object.page_size, is_page)
 

@@ -18,11 +18,12 @@ class EdfService:
         return EdfModel(**CamelCaseUtil.transform_result(edf_res))
 
     @classmethod
-    def get_edf_list_services(cls, query_db: Session, query_object: EdfPageQueryModel, is_page: bool = False):
+    def get_edf_list_services(cls, query_db: Session, user_id: int, query_object: EdfPageQueryModel,
+                              is_page: bool = False):
         """
         获取edf信息service
         """
-        edf_list_result = EdfDao.get_edf_list(query_db, query_object, is_page)
+        edf_list_result = EdfDao.get_edf_list(query_db, user_id, query_object, is_page)
 
         return edf_list_result
 
