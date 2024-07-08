@@ -4,18 +4,9 @@
     <el-dialog :title="title" v-model="open" width="800px" append-to-body @opened="modalOpened" @close="closeDialog">
       <el-row>
         <el-col :xs="24" :md="12" :style="{ height: '350px' }">
-          <vue-cropper
-            ref="cropper"
-            :img="options.img"
-            :info="true"
-            :autoCrop="options.autoCrop"
-            :autoCropWidth="options.autoCropWidth"
-            :autoCropHeight="options.autoCropHeight"
-            :fixedBox="options.fixedBox"
-            :outputType="options.outputType"
-            @realTime="realTime"
-            v-if="visible"
-          />
+          <vue-cropper ref="cropper" :img="options.img" :info="true" :autoCrop="options.autoCrop"
+            :autoCropWidth="options.autoCropWidth" :autoCropHeight="options.autoCropHeight" :fixedBox="options.fixedBox"
+            :outputType="options.outputType" @realTime="realTime" v-if="visible" />
         </el-col>
         <el-col :xs="24" :md="12" :style="{ height: '350px' }">
           <div class="avatar-upload-preview">
@@ -26,15 +17,12 @@
       <br />
       <el-row>
         <el-col :lg="2" :md="2">
-          <el-upload
-            action="#"
-            :http-request="requestUpload"
-            :show-file-list="false"
-            :before-upload="beforeUpload"
-          >
+          <el-upload action="#" :http-request="requestUpload" :show-file-list="false" :before-upload="beforeUpload">
             <el-button>
               选择
-              <el-icon class="el-icon--right"><Upload /></el-icon>
+              <el-icon class="el-icon--right">
+                <Upload />
+              </el-icon>
             </el-button>
           </el-upload>
         </el-col>
@@ -66,7 +54,6 @@ import useUserStore from "@/store/modules/user";
 
 const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
-
 const open = ref(false);
 const visible = ref(false);
 const title = ref("修改头像");
@@ -80,7 +67,7 @@ const options = reactive({
   fixedBox: true,            // 固定截图框大小 不允许改变
   outputType: "png",         // 默认生成截图为PNG格式
   filename: 'avatar',        // 文件名称
-  previews: {}               //预览数据
+  previews: {}               // 预览数据
 });
 
 /** 编辑头像 */
@@ -92,7 +79,7 @@ function modalOpened() {
   visible.value = true;
 }
 /** 覆盖默认上传行为 */
-function requestUpload() {}
+function requestUpload() { }
 /** 向左旋转 */
 function rotateLeft() {
   proxy.$refs.cropper.rotateLeft();
@@ -127,15 +114,43 @@ function uploadImg() {
     uploadAvatar(formData).then(response => {
       open.value = false;
       options.img = import.meta.env.VITE_APP_BASE_API + response.imgUrl;
+      // console.log(import.meta.env.VITE_APP_BASE_API)  /dev-api
+      // console.log(response.imgUrl)  /profile/avatar/2024/07/07/avatar_20240707150538A004.png
       userStore.avatar = options.img;
       proxy.$modal.msgSuccess("修改成功");
       visible.value = false;
     });
   });
 }
-/** 实时预览 */
+/**
+ * 实时预览
+ * @param {*} data  实时图像数据
+ */
 function realTime(data) {
   options.previews = data;
+  // {div: {…}, w: 200, h: 200, url: 'blob:http://localhost/16e790d9-bba6-4d8e-b070-b2d2b4165c8c', img: {…}, …}
+  // console.log(data);
+  /**
+   * blob URL 是一种伪协议，blob（binary large object）: 前缀的 URL 用于表示 Blob 对象或 File 对象的引用。
+   * Blob 对象表示一个不可变、原始数据的类文件对象，通常用于保存二进制数据。
+   * 通过 blob: URL，可以在浏览器中安全地引用这些数据，而无需将其保存到服务器。
+   * 
+   * blob: URL 用于实时预览图片。以下是具体作用和使用场景的解释：
+   * 1、实时预览：
+   * 当用户上传图片或文件时，可以使用 Blob 对象生成一个临时的 blob: URL，在浏览器中显示该图片或文件，而无需将其上传到服务器。
+   * 这对于提高用户体验非常有用，因为用户可以立即看到预览效果，而不需要等待文件上传完成。
+   * 2、安全性：
+   * blob: URL 只能在当前浏览器会话中使用，不会泄漏到外部。它们是短暂的，并且在页面刷新或关闭时会自动失效。
+   * 这确保了数据的安全性，因为数据不会暴露在网络上传输中。
+   * 3、总结：
+   * blob: URL 用于在浏览器中引用 Blob 或 File 对象的数据，常用于实时预览文件。
+   * 它们是短暂且安全的，可以在当前会话中使用，而无需将数据上传到服务器。
+   * 这种方式提高了用户体验，尤其是在文件上传和预览功能中。
+   */
+  // "blob:http://localhost/16e790d9-bba6-4d8e-b070-b2d2b4165c8c"
+  // console.log(options.previews.url)
+  // {width: '250px', height: '250px', transform: 'scale(1)translate3d(65px, 50px, 0px)rotateZ(0deg)'}
+  // console.log(options.previews.img)
 }
 /** 关闭窗口 */
 function closeDialog() {

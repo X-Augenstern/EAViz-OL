@@ -10,32 +10,79 @@ export function parseTime(time, pattern) {
   }
   const format = pattern || '{y}-{m}-{d} {h}:{i}:{s}'
   let date
-  if (typeof time === 'object') {
+  // console.log(typeof time)  // string
+  if (typeof time === 'object') {  // 如果是Date对象，则直接使用它
     date = time
   } else {
     if ((typeof time === 'string') && (/^[0-9]+$/.test(time))) {
+      // 如果 time 参数是一个字符串且仅包含数字（即可能是一个时间戳），则将其转换为整数：
+      //    /^[0-9]+$/ 是一个正则表达式，用于匹配一个或多个数字字符。
+      //    ^ 表示字符串的开始。
+      //    [0-9] 表示一个数字字符（0到9）。
+      //    + 表示前面的模式 [0-9] 可以匹配一次或多次，即一个或多个数字字符。
+      //    $ 表示字符串的结束。
+      // .test(time) 方法用于测试字符串 time 是否匹配正则表达式模式。如果匹配，则返回 true；否则，返回 false。
       time = parseInt(time)
     } else if (typeof time === 'string') {
+      // 如果 time 参数是一个字符串，则进行以下转换：
+      //    new RegExp(/-/gm) 创建了一个正则表达式，用于匹配所有的 - 字符。
+      //    replace(new RegExp(/-/gm), '/') 将字符串中的所有 - 替换为 /。
+      //    g 标志表示全局匹配（替换所有的匹配项）。
+      //    m 标志表示多行匹配，表示 ^ 和 $ 可以匹配每行的开始和结束，而不仅仅是整个输入字符串的开始和结束。(但在这里并不影响结果，因为日期字符串通常是一行的。)
+      //    这一步将 T 替换为空格，主要用于处理 ISO 8601 格式的日期时间字符串，如 "2023-01-01T12:00:00"，使其变成 "2023-01-01 12:00:00"。
+      //    replace 方法默认只替换第一个匹配项，但由于日期时间字符串中通常只有一个 T，所以这里不需要全局匹配。
+      //    new RegExp(/\.[\d]{3}/gm) 创建了一个正则表达式，用于匹配 . 后面紧跟三个数字的部分（即毫秒部分，如 .123）。
+
+      // []（字符类）
+      //    方括号 [] 用于定义一个字符类，表示在这个位置可以匹配的任意一个字符。
+      //    [0-9] 表示任意一个数字字符（0 到 9）。
+      //    [a-z] 表示任意一个小写字母字符（a 到 z）。
+      //    [A-Z] 表示任意一个大写字母字符（A 到 Z）。
+      //    [abc] 表示字符 a、b 或 c 之一。
+      //    [\d] 是一个字符类，表示任意一个数字字符。这里的 \d 是预定义字符类，等价于 [0-9]。
+
+      // {}（量词）
+      //    花括号 {} 用于指定前一个字符或子表达式的匹配次数。
+      //    {n} 表示恰好匹配 n 次。
+      //    {n,} 表示至少匹配 n 次。
+      //    {n,m} 表示匹配 n 到 m 次。
       time = time.replace(new RegExp(/-/gm), '/').replace('T', ' ').replace(new RegExp(/\.[\d]{3}/gm), '');
+      // "2023-01-01T12:00:00.123" -> 最终结果是 "2023/01/01 12:00:00"，这是一个可以被 JavaScript Date 对象正确解析的日期时间字符串。
     }
+    // 如果 time 参数是一个数字且长度为 10（秒级时间戳），则将其转换为毫秒级时间戳。
     if ((typeof time === 'number') && (time.toString().length === 10)) {
       time = time * 1000
     }
+
     date = new Date(time)
   }
   const formatObj = {
     y: date.getFullYear(),
-    m: date.getMonth() + 1,
+    m: date.getMonth() + 1,  // 月（注意：月份从0开始，所以要加1）
     d: date.getDate(),
     h: date.getHours(),
     i: date.getMinutes(),
     s: date.getSeconds(),
-    a: date.getDay()
+    a: date.getDay()         // 星期几（0是周日）
   }
+  // 使用正则表达式替换格式字符串中的占位符。
+  // {y|m|d|h|i|s|a} 会匹配模式中的任何一个占位符。
+  // .replace(/{(y|m|d|h|i|s|a)+}/g, (result, key) => { ... }) 使用正则表达式匹配 format 字符串中的占位符，并用回调函数的返回值替换它们。
+  // /{(y|m|d|h|i|s|a)+}/g：
+  //    / 和 / 之间是正则表达式的主体。
+  //    { 和 } 是占位符的包围符号。
+  //    括号 () 定义了一个捕获组，| 表示“或”的关系。(y|m|d|h|i|s|a) 用于匹配单个字符 y, m, d, h, i, s, a。
+  //    {} 包围了整个捕获组，用于在模板字符串中表示占位符。例如，{y} 表示年份占位符，{m} 表示月份占位符，依此类推。
+  //    + 表示匹配一个或多个前面的字符（即捕获组中的一个字符）。
+  //    g 标志表示全局匹配，即匹配字符串中的所有符合条件的部分。
+  // result 是匹配到的完整字符串，例如 {y}。
+  // key 是捕获组匹配的内容，即 y, m, d, h, i, s, a 其中之一。
   const time_str = format.replace(/{(y|m|d|h|i|s|a)+}/g, (result, key) => {
     let value = formatObj[key]
     // Note: getDay() returns 0 on Sunday
+    // 如果是星期几的占位符 'a'，则将其转换为中文的星期几。
     if (key === 'a') { return ['日', '一', '二', '三', '四', '五', '六'][value] }
+    // 如果占位符长度大于 0 且值小于 10，则在值前面加 '0' 以补齐两位数。
     if (result.length > 0 && value < 10) {
       value = '0' + value
     }

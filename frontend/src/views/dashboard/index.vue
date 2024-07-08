@@ -45,7 +45,7 @@
             <!-- <template #extra>
               <a href=""> <span style="color: #1890ff">全部项目</span> </a>
             </template> -->
-            <a-card-grid v-for="item in projectNotice" :key="item.id" class="projectGrid">
+            <a-card-grid v-for="item in eaviz_items" :key="item.id" class="projectGrid">
               <a-card :body-style="{ padding: 0, fontSize: '16px' }" style="box-shadow: none" :bordered="false">
                 <a-card-meta :description="item.description" class="w-full">
                   <template #title>
@@ -164,6 +164,7 @@ export default {
 import { Radar } from "@antv/g2plot";
 import EditableLinkGroup from "./editable-link-group.vue";
 import useUserStore from "../../store/modules/user";
+import { eaviz_items } from "../../eaviz/items";
 let userStore = useUserStore();
 let title = import.meta.env.VITE_APP_TITLE;
 
@@ -178,74 +179,6 @@ defineOptions({
 // title: "交互专家",
 // group: "蚂蚁金服－某某某事业群－某某平台部－某某技术部－UED",
 // };
-
-const projectNotice = [
-  {
-    id: "01",
-    title: "ESC + SD",
-    // logo: "https://gw.alipayobjects.com/zos/rmsportal/WdGqmHpayyMjiEhcKoVE.png",
-    color: '#40E0D0',  // instead logo
-    description: "Epilepsy Syndrome Classification & Seizure Detection",
-    // updatedAt: "几秒前",
-    // member: "科学搬砖组",
-    href: "",
-    memberLink: "",
-  },
-  {
-    id: "02",
-    title: "AD",
-    // logo: "https://gw.alipayobjects.com/zos/rmsportal/zOsKZmFRdUtvpqCImOVY.png",
-    color: '#7FFF00',
-    description: "Artifact Detection",
-    // updatedAt: "6 年前",
-    // member: "全组都是吴彦祖",
-    href: "",
-    memberLink: "",
-  },
-  {
-    id: "03",
-    title: "SeiD",
-    // logo: "https://gw.alipayobjects.com/zos/rmsportal/dURIMkkrRFpPgTuzkwnB.png",
-    color: '#FF7F50',
-    description: "Spike Detection",
-    // updatedAt: "几秒前",
-    // member: "中二少女团",
-    href: "",
-    memberLink: "",
-  },
-  {
-    id: "04",
-    title: "VD",
-    // logo: "https://gw.alipayobjects.com/zos/rmsportal/sfjbOqnsXXJgNCjCzDBL.png",
-    color: '#6495ED',
-    description: "Video Detection",
-    // updatedAt: "6 年前",
-    // member: "程序员日常",
-    href: "",
-    memberLink: "",
-  },
-  {
-    id: "05",
-    title: "HFO",
-    // logo: "https://gw.alipayobjects.com/zos/rmsportal/siCrBXXhmvTQGWPNLBow.png",
-    color: '#EE82EE',
-    description: "High Frequency Oscillation",
-    // updatedAt: "6 年前",
-    // member: "高逼格设计天团",
-    href: "",
-    memberLink: "",
-  },
-  {
-    id: "06",
-    title: "",
-    // logo: "https://gw.alipayobjects.com/zos/rmsportal/kZzEzemZyKLKFsojXItE.png",
-    description: "To be added",
-    // updatedAt: "6 年前",
-    // member: "骗你来学计算机",
-    href: "",
-    memberLink: "",
-  },
-];
 
 // const activities = [
 //   {
