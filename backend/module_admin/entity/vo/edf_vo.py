@@ -13,7 +13,10 @@ class EdfModel(BaseModel):
 
     edf_id: Optional[int] = None
     edf_name: Optional[str] = None
+    edf_sfreq: Optional[float] = None
+    edf_time: Optional[float] = None
     edf_path: Optional[str] = None
+    valid_channels: Optional[str] = None
     upload_by: Optional[str] = None
     upload_time: Optional[datetime] = None
     remark: Optional[str] = None
@@ -79,3 +82,41 @@ class EdfUserPageQueryModel(EdfUserQueryModel):
     """
     page_num: int = 1
     page_size: int = 10
+
+
+@as_query
+class EdfDataQueryModel(BaseModel):
+    """
+    Edf数据查询模型
+    """
+    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+
+    edf_id: int
+    # selected_channels: Optional[List[str]] = None
+
+
+class EdfDataChunkModel(BaseModel):
+    """
+    Edf数据块响应模型
+
+    data(<chunk> read from mne.io.read_raw_edf)
+        len(channel names) * len(sampling points)
+        e.g. 46*9000
+
+    channel_index(corresponding to channel_names)
+
+    sfreq
+        e.g. 200.0
+
+    channel_names
+        e.g. ['Fp1', 'F7', 'T3', 'T5', ...]
+
+    -> sampling time = sampling points / sfreq
+        e.g. 9000/200
+    """
+    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+
+    data: List[List[float]]
+    channel_index: int
+    sfreq: float
+    channel_names: List[str]

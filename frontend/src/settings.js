@@ -1,6 +1,6 @@
 export default {
   /**
-   * 网页标题
+   * 登录后的网页标题
    */
   short_title: import.meta.env.VITE_APP_SHORT_TITLE,
 

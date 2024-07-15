@@ -50,10 +50,16 @@
                 <a-card-meta :description="item.description" class="w-full">
                   <template #title>
                     <div class="cardTitle">
-                      <a-avatar :size="25" :src="item.logo" :style="{ backgroundColor: item.color }" />
-                      <a :href="item.href">
+                      <a-avatar :size="25" :src="item.logo" :style="{ backgroundColor: item.color }">
+                        <!-- <span class="avatar-text">{{ item.logoTxt }}</span> -->
+                      </a-avatar>
+                      <!-- 
+                      使用 <a :href="item.href"> 进行页面导航时，浏览器会进行完整的页面刷新，这意味着 Vue 应用将被完全重新加载。这个过程会导致所有的组件状态、Vuex 状态、以及任何未持久化的数据丢失。
+                      为了避免这种情况，使用 Vue Router 提供的 <router-link> 组件进行导航。<router-link> 使用 Vue Router 的客户端路由机制，导航时不会刷新页面，从而保留应用的状态。
+                      -->
+                      <router-link :to="item.href" class="custom-link">
                         {{ item.title }}
-                      </a>
+                      </router-link>
                     </div>
                   </template>
                 </a-card-meta>
@@ -573,7 +579,7 @@ defineOptions({
   .cardTitle {
     font-size: 0;
 
-    a {
+    .custom-link {
       display: inline-block;
       height: 24px;
       margin-left: 12px;
@@ -586,6 +592,16 @@ defineOptions({
         color: #1890ff;
       }
     }
+
+    // .avatar-text {
+    //   display: flex;
+    //   align-items: center;
+    //   justify-content: center;
+    //   height: 100%;
+    //   width: 100%;
+    //   color: black;
+    //   font-size: 18px;
+    // }
   }
 
   .projectGrid {

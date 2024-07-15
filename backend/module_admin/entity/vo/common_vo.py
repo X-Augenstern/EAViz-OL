@@ -23,3 +23,4 @@ class UploadResponseModel(BaseModel):
     original_filename: Optional[str] = None
     url: Optional[str] = None
     file_path: Optional[str] = None
+    extra_info: Optional[dict] = None

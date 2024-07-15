@@ -298,6 +298,12 @@ const data = reactive({
       nickName: [{ required: true, message: "用户昵称不能为空", trigger: "blur" }],
       password: [{ required: true, message: "用户密码不能为空", trigger: "blur" }, { min: 5, max: 20, message: "用户密码长度必须介于 5 和 20 之间", trigger: "blur" }],
       email: [{ type: "email", message: "请输入正确的邮箱地址", trigger: ["blur", "change"] }],
+      // ^：表示字符串的开始。
+      // 1：匹配字符 '1'。在中国大陆，手机号码以 '1' 开头。
+      // [3|4|5|6|7|8|9]：匹配一个数字，范围是 3, 4, 5, 6, 7, 8, 或 9。这里的 | 其实不需要，直接写成 [3456789] 即可。
+      // [0-9]：匹配任意一个数字，范围是 0 到 9。
+      // \d{8}：匹配任意八个数字（\d 表示一个数字，{8} 表示匹配 8 次）。
+      // $：表示字符串的结束。
       phonenumber: [{ pattern: /^1[3|4|5|6|7|8|9][0-9]\d{8}$/, message: "请输入正确的手机号码", trigger: "blur" }]
    }
 });
@@ -421,7 +427,7 @@ function importTemplate() {
    proxy.download("system/user/importTemplate", {
    }, `user_template_${new Date().getTime()}.xlsx`);
 };
-/**文件上传中处理 */
+/** 文件上传中处理 */
 const handleFileUploadProgress = (event, file, fileList) => {
    upload.isUploading = true;
 };

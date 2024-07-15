@@ -30,6 +30,8 @@ class EdfDao:
             conditions.append(SysEdfUser.user_id == user_id)
         if query_object.edf_name:
             conditions.append(SysEdf.edf_name.like(f'%{query_object.edf_name}%'))
+        if query_object.edf_sfreq:
+            conditions.append(SysEdf.edf_sfreq == query_object.edf_sfreq)
         if query_object.upload_by:
             conditions.append(SysEdf.upload_by.like(f'%{query_object.upload_by}%'))
         if query_object.begin_time and query_object.end_time:
@@ -39,13 +41,19 @@ class EdfDao:
                 datetime.combine(datetime.strptime(query_object.end_time, '%Y-%m-%d'),
                                  time(23, 59, 59))))
 
+        # SELECT DISTINCT sys_edf.edf_id AS sys_edf_edf_id, sys_edf.edf_name AS sys_edf_edf_name,
+        # sys_edf.edf_sfreq AS sys_edf_edf_sfreq, sys_edf.edf_time AS sys_edf_edf_time,
+        # sys_edf.edf_path AS sys_edf_edf_path, sys_edf.valid_channels AS sys_edf_valid_channels,
+        # sys_edf.upload_by AS sys_edf_upload_by, sys_edf.upload_time AS sys_edf_upload_time,
+        # sys_edf.remark AS sys_edf_remark
+        # FROM sys_edf INNER JOIN sys_edf_user ON sys_edf.edf_id = sys_edf_user.edf_id ORDER BY sys_edf.edf_id
         query = (db.query(SysEdf)
                  .join(SysEdfUser, and_(SysEdf.edf_id == SysEdfUser.edf_id))
                  .filter(and_(*conditions))
                  .order_by(SysEdf.edf_id)
                  .distinct())
-
-        edf_list = PageUtil.paginate(query, query_object.page_num, query_object.page_size, is_page)
+        edf_list = PageUtil.paginate(query, query_object.page_num, query_object.page_size, is_page,
+                                     exclude_columns=['edf_path'])
 
         return edf_list
 

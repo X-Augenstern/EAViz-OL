@@ -7,6 +7,7 @@ class PwdUtil:
     """
     密码工具类
     """
+
     @classmethod
     def verify_password(cls, plain_password, hashed_password):
         """

@@ -68,42 +68,30 @@ async def query_detail_system_edf(request: Request,
 @log_decorator(title='EDF管理', business_type=6)
 async def import_system_edf(request: Request, query_db: Session = Depends(get_db),
                             current_user: CurrentUserModel = Depends(LoginService.get_current_user),
-                            files: List[UploadFile] = File(...)):
+                            file: UploadFile = File(...)):
     """
-    批量导入Edf文件并添加到数据库
+    导入Edf文件并添加到数据库
     """
     try:
-        upload_results = CommonService.upload_service(request, files)
+        upload_res = CommonService.upload_service(request, file)
 
-        # 上传结果汇总
-        failed_msgs = []
-        success_results = []
-        for res in upload_results:
-            if res.is_success:
-                success_results.append(res)
-            else:
-                failed_msgs.append(res.message)
+        # 检查上传结果
+        if not upload_res.is_success:
+            logger.warning(upload_res.message)
+            return ResponseUtil.failure(msg=upload_res.message)
+        logger.info(upload_res.message)
 
-        warning_msg = ''
-        if failed_msgs:
-            warning_msg = ';'.join(failed_msgs)
-            logger.warning(warning_msg)
-        else:
-            logger.info('上传成功')
-        if len(failed_msgs) == len(files):
-            return ResponseUtil.failure(msg=warning_msg)
+        edf = EdfModel(
+            edfName=upload_res.result.original_filename,  # 字典已经转化为了Pydantic模型
+            edfSfreq=upload_res.result.extra_info['sfreq'],
+            edfTime=upload_res.result.extra_info['time'],
+            edfPath=upload_res.result.file_path,
+            validChannels=upload_res.result.extra_info['valid_channels'],
+            uploadBy=current_user.user.user_name,
+            uploadTime=datetime.now()
+        )
 
-        success_edf_list = []
-        for res in success_results:
-            edf = EdfModel(
-                edfName=res.result.original_filename,  # 字典已经转化为了Pydantic模型
-                edfPath=res.result.file_path,
-                uploadBy=current_user.user.user_name,
-                uploadTime=datetime.now()
-            )
-            success_edf_list.append(edf)
-
-        added_edf = AddEdfModel(edfList=success_edf_list, userId=current_user.user.user_id)
+        added_edf = AddEdfModel(edfList=[edf], userId=current_user.user.user_id)
         added_edf_result = EdfService.add_edf_services(query_db, added_edf)
         if added_edf_result.is_success:
             logger.info(added_edf_result.message)
@@ -151,3 +139,83 @@ async def delete_system_edf(request: Request, edf_ids: str, query_db: Session = 
             return ResponseUtil.error(msg=str(e))
     else:
         return ResponseUtil.error(msg='传入EDF ID为空')
+
+# @edfController.post("/getData", response_model=EdfDataModel,
+#                     dependencies=[Depends(CheckUserInterfaceAuth("system:edf:getData"))])
+# @log_decorator(title='EDF管理', business_type=10)
+# async def get_system_edf_data_by_id(request: Request,
+#                                     edf_data_query: EdfDataQueryModel = Depends(EdfDataQueryModel),
+#                                     query_db: Session = Depends(get_db),
+#                                     current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
+#     """
+#     获取Edf数据
+#
+#     1、路径参数："/{edf_ids}"
+#     直接在路由路径中定义，属于URL的一部分。由FastAPI自动解析并传递给对应的函数参数。
+#         路径：/{edf_ids}，在路径中定义了参数edf_ids。
+#         路径参数：通过URL路径传递，如：/123,456。
+#         路径参数解析：edf_ids参数由FastAPI自动解析并传递给函数。
+#     路径参数通常用于标识资源或指定资源的层次结构。路径参数是URL的一部分，通常用于需要唯一标识某个特定资源的场合。
+#         获取、更新或删除特定资源。
+#         资源层次结构（如目录和子目录）。
+#         e.g.:
+#             获取用户详情：/users/{user_id}
+#             删除特定的EDF数据：/system/edf/{edf_ids}
+#
+#     2、查询参数："/getData" edf_data_query: EdfDataQueryModel = Depends(EdfDataQueryModel.as_query)
+#     不在路径中定义，而是通过URL中的查询字符串传递。
+#     通过FastAPI的Query注解解析，或者通过依赖项注入传递给函数参数。
+#         路径：/getData，没有在路径中定义参数。
+#         查询参数：通过URL查询字符串传递，如：/getData?edf_id=123&selected_channels=channel1,channel2。
+#         依赖项注入：edf_data_query参数通过Depends(EdfDataQueryModel.as_query)注入，该方法解析查询字符串中的参数并创建EdfDataQueryModel实例。
+#     查询参数通常用于过滤、排序或分页等目的，它们是附加在URL之后的键值对。查询参数适用于传递可选参数或多个参数的情况。
+#         过滤、排序或分页。
+#         可选参数（如搜索条件）。
+#         一次性查询多个属性。
+#         e.g.:
+#             获取过滤后的EDF数据：/system/edf/getData?edf_id=123&selected_channels=channel1,channel2
+#             搜索用户：/users?name=john&age=30
+#
+#     3、请求体参数：/getData edf_data_query: EdfDataQueryModel = Depends(EdfDataQueryModel)
+#     请求体参数通过POST请求的请求体传递，不在路径或查询字符串中定义。
+#     通过FastAPI的依赖项注入和Pydantic模型解析请求体数据并传递给函数参数。
+#         路径：/getData，没有在路径中定义参数，路径是固定的。
+#         请求体参数：通过POST请求的请求体传递，如：
+#         {
+#             "edf_id": 123,
+#             "selected_channels": ["channel1", "channel2"]
+#         }
+#         依赖项注入：edf_data_query 参数通过 EdfDataQueryModel 模型直接注入，FastAPI自动解析请求体中的数据并创建 EdfDataQueryModel 实例。
+#     请求体参数通常用于：
+#         传递需要创建、更新或复杂查询的完整数据。
+#         包含大量或敏感信息。
+#         结构化的数据传递。
+#
+#     路径参数：用于标识资源或资源层次结构。
+#     查询参数：用于过滤、排序、分页或传递可选参数。
+#     请求体参数：用于传递复杂数据结构或表单数据。
+#     标头参数：用于传递认证信息或自定义HTTP标头。
+#     Cookie参数：用于维护用户会话状态或存储用户偏好设置。
+#     表单参数：用于处理HTML表单提交的数据或文件上传。
+#
+#     在GET请求中，使用请求体参数（Body Parameters）是不符合HTTP规范的。
+#     在RESTful设计中，GET请求是设计用来从服务器获取资源的，它应该是无副作用的请求，并且不允许请求体。应当仅使用路径参数和查询参数。
+#     使用请求体参数通常适用于POST、PUT和PATCH请求，用于传递大量数据或复杂的结构化数据。
+#     而POST请求通常用于可能引起副作用的写入操作。
+#     尽管GET请求是最常见的读取数据的方法，使用POST请求读取数据在某些情况下也是可以接受的，特别是在以下情况：
+#         请求参数复杂且数量较多：如果请求参数复杂且数量较多，GET请求的URL长度可能会受到限制。
+#         敏感数据：如果请求参数中包含敏感数据，不希望在URL中暴露这些信息，可以使用POST请求将参数放在请求体中。
+#         即使GET请求是读取操作的标准选择，在实际应用中使用POST请求来读取数据也并非不可能。许多API在处理复杂查询时都使用POST请求。
+#     GET请求是无副作用的读取操作的标准选择，但受到URL长度限制和数据保密问题的影响。
+#     POST请求可以在需要传递复杂和大量参数或需要保密数据时使用，即使是无副作用的读取操作。
+#     """
+#     try:
+#         edf_data_query_result = EdfService.get_edf_data_by_id_services(query_db, edf_data_query)
+#         if edf_data_query_result.is_success:
+#             logger.info(edf_data_query_result.message)
+#             return ResponseUtil.success(model_content=edf_data_query_result.result)
+#         else:
+#             logger.info(edf_data_query_result.message)
+#             return ResponseUtil.failure(msg=edf_data_query_result.message)
+#     except Exception as e:
+#         return ResponseUtil.error(msg=str(e))

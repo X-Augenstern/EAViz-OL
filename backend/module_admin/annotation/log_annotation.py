@@ -53,7 +53,7 @@ def log_decorator(title: str, business_type: int, log_type: Optional[str] = 'ope
 
     :param log_type: 日志类型（login表示登录日志，为空表示为操作日志）
     :param title: 当前日志装饰器装饰的模块标题
-    :param business_type: 业务类型（0其它 1新增 2修改 3删除 4授权 5导出 6导入 7强退 8生成代码 9清空数据）
+    :param business_type: 业务类型（0其它 1新增 2修改 3删除 4授权 5导出 6导入 7强退 8生成代码 9清空数据 10获取EDF数据）
     """
 
     def decorator(func):  # 装饰器函数 decorator，接收一个函数 func
