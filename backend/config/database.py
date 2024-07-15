@@ -6,7 +6,7 @@ from config.env import DataBaseConfig
 
 # quote_plus()会将斜线'/'编码为‘%2F’; 空格‘ ’编码为‘+’
 # DATABASE_URL = <dialect>+<DBAPI>://<user>:<password>@<ip>:<port>/<schema>?<arg_key>=<value>&<arg_key>=<value>..
-# mysql+pymysql://root:@127.0.0.1:3306/eaviz
+# mysql+pymysql://root:527644117@127.0.0.1:3306/eaviz
 SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DataBaseConfig.db_username}:{quote_plus(DataBaseConfig.db_password)}@" \
                           f"{DataBaseConfig.db_host}:{DataBaseConfig.db_port}/{DataBaseConfig.db_database}"
 

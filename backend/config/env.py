@@ -38,7 +38,7 @@ class DataBaseSettings(BaseSettings):
     db_host: str = '127.0.0.1'
     db_port: int = 3306
     db_username: str = 'root'
-    db_password: str = ''
+    db_password: str = '527644117'
     db_database: str = 'eaviz'
     db_echo: bool = True  # 打印出所有的数据库查询语句
     db_max_overflow: int = 10  # 连接池允许的最大连接数
@@ -117,6 +117,15 @@ class EAVizSettings:
     """
     EAViz配置
     """
+    freq_bands = [(0, 4), (4, 8), (8, 12), (12, 30), (30, 45)]
+
+    channels_TPM = ['Fp1', 'F7', 'F3', 'T3', 'C3', 'T5', 'P3', 'Pz', 'O1', 'O2', 'P4', 'T6', 'C4', 'T4',
+                    'F4', 'F8', 'Fp2', 'Fz', 'Cz']  # 19
+    channels_21 = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7',
+                   'F8', 'T3', 'T4', 'T5', 'T6', 'A1', 'A2', 'Fz', 'Cz', 'Pz']  # ESC SD
+    channels_19 = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T3', 'T4',
+                   'T5', 'T6', 'Fz', 'Cz', 'Pz']  # AD SpiD HFO
+
     item_name = ['ESC', 'SD']
     cp_address = {  # item_name:cp_address
         'ESC': 'eaviz/ESC_SD/ESC/A3D-EEG_epoch-19.pth.tar',
@@ -124,6 +133,26 @@ class EAVizSettings:
         'HFO': 'eaviz/HFO/model_weights.pth',
         'VD1': 'eaviz/VD/yolov5l_best.pt',
         'VD2': 'eaviz/VD/3d_Resnet_best.pth',
+    }
+    input_des = {  # item_name:input_des
+        'ESC_SD': 'This item requires the .EDF FILE:\n'
+                  'Sampling Frequency: 1000Hz\n'
+                  '21 channels, which can be seem per info (21 channels)\n'
+                  'Sampling Time >= 4s',
+        'AD': 'This item requires the .EDF FILE:\n'
+              'Sampling Frequency: 1000Hz\n'
+              '19 channels, which can be seem per info (19 channels)\n'
+              'Sampling Time >= 11s',
+        'SpiD': 'This item requires the .EDF FILE:\n'
+                'Sampling Frequency: 500Hz\n'
+                '19 channels, which can be seem per info (19 channels)\n'
+                'Sampling Time >= 1s(Template) | > 30s(Semantics)',
+        'HFO': 'This item requires the .EDF FILE:\n'
+               'Sampling Frequency: 1000Hz\n'
+               '19 channels, which can be seem per info (19 channels)\n'
+               'Sampling Time >= 1s',
+        'VD': 'This item requires the .MP4 FILE:\n'
+              'Frame per Second: 20'
     }
 
 
