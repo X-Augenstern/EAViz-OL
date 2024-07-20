@@ -42,6 +42,7 @@ class CamelCaseUtil:
     """
     小驼峰形式(camelCase)与下划线形式(snake_case)互相转换工具方法
     """
+
     @classmethod
     def camel_to_snake(cls, camel_str):
         """
@@ -170,25 +171,28 @@ def bytes2human(n, format_str="%(value).1f%(symbol)s"):  # %(value).1f 表示小
     return format_str % dict(symbol=symbols[0], value=n)  # 'B'
 
 
-def bytes2file_response(bytes_info):
+def bytes2file_response(bytes_info, chunk_size=None):
     """
+    分块数据传输生成器
+    :param bytes_info: 二进制数据
+    :param chunk_size: 每块大小
+    :return: 分块数据
+
     包含 yield 关键字时，这个函数被称为生成器（generator）。生成器是一种特殊类型的迭代器，它允许函数生成一个数据序列，而不是一次性返回所有数据。
 
     每次产生一个值后会暂停其状态（包括局部变量和执行位置），直到下一次从该生成器请求数据时再继续执行。这种机制使得生成器非常适合处理大数据流或需要懒加载（按需加载）的场景。
 
     假设 bytes_info 是一些二进制数据，这个生成器可以被用于按部分传输数据，例如在 Web 应用中流式传输文件内容，允许用户下载大文件而不必将整个文件一次性加载到内存中。
-
-    Notes：
-    目前并没有实际地将数据分块发送，而是将整个字节数据作为一个整体发送。这个函数只是简单地将整个 bytes_info 对象作为一个块进行返回，并没有进行分块处理。
-
-    这样的话，虽然它是一个生成器，但实际上仍然是一次性加载和发送所有数据，没有实现逐步发送数据的效果。
-
-    实现真正的分块发送：分割数据，并逐块返回
-    chunk_size = 8192 # 默认块大小为 8192 字节（8KB）
-    for i in range(0, len(bytes_info), chunk_size):
-        yield bytes_info[i:i + chunk_size]
     """
-    yield bytes_info
+    if not chunk_size:
+        # 并没有实际地将数据分块发送，而是将整个字节数据作为一个整体发送。
+        # 只是简单地将整个 bytes_info 对象作为一个块进行返回，并没有进行分块处理。
+        # 这样虽然它是一个生成器，但实际上仍然是一次性加载和发送所有数据，没有实现逐步发送数据的效果。
+        yield bytes_info
+    else:
+        for i in range(0, len(bytes_info), chunk_size):
+            # 实现真正的分块发送：分割数据，并逐块返回
+            yield bytes_info[i:i + chunk_size]
 
 
 def export_list2excel(list_data: List):

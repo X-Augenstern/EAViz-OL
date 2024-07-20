@@ -92,31 +92,18 @@ class EdfDataQueryModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
     edf_id: int
-    # selected_channels: Optional[List[str]] = None
+    selected_channels: Optional[str] = None
+    start: int
+    end: int
 
 
-class EdfDataChunkModel(BaseModel):
-    """
-    Edf数据块响应模型
-
-    data(<chunk> read from mne.io.read_raw_edf)
-        len(channel names) * len(sampling points)
-        e.g. 46*9000
-
-    channel_index(corresponding to channel_names)
-
-    sfreq
-        e.g. 200.0
-
-    channel_names
-        e.g. ['Fp1', 'F7', 'T3', 'T5', ...]
-
-    -> sampling time = sampling points / sfreq
-        e.g. 9000/200
-    """
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
-
-    data: List[List[float]]
-    channel_index: int
-    sfreq: float
-    channel_names: List[str]
+# class EdfDataChunkResponseModel(BaseModel):
+#     """
+#     Edf数据块响应模型
+#     """
+#     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+#
+#     chunk: List[List[float]]  # channels * sampling points e.g.: 21*9000
+#     start: int
+#     end: int
+#     total_length: int

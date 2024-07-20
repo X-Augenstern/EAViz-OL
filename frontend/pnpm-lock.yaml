@@ -53,6 +53,9 @@ importers:
       pinia:
         specifier: 2.1.7
         version: 2.1.7(vue@3.3.9)
+      plotly.js-dist-min:
+        specifier: ^2.34.0
+        version: 2.34.0
       vue:
         specifier: 3.3.9
         version: 3.3.9
@@ -1624,6 +1627,9 @@ packages:
 
   pkg-types@1.1.0:
     resolution: {integrity: sha512-/RpmvKdxKf8uILTtoOhAgf30wYbP2Qw+L9p3Rvshx1JZVX+XQNZQFjlbmGHEGIm4CkVPlSn+NXmIM8+9oWQaSA==}
+
+  plotly.js-dist-min@2.34.0:
+    resolution: {integrity: sha512-HKAXTm+cFLNPxNllGIZGgVwX4OCd2SCnLLveUUOk4P27EKz/aPKeGLAcnGXegH3IKZKhvcbmreiwC+vK5vPlXw==}
 
   posix-character-classes@0.1.1:
     resolution: {integrity: sha512-xTgYBc3fuo7Yt7JbiuFxSYGToMoz8fLoE6TC9Wx1P/u+LfeThMOAqmuyECnlBaaJb+u1m9hHiXUEtwW4OzfUJg==}
@@ -3838,6 +3844,8 @@ snapshots:
       confbox: 0.1.7
       mlly: 1.7.0
       pathe: 1.1.2
+
+  plotly.js-dist-min@2.34.0: {}
 
   posix-character-classes@0.1.1: {}
 

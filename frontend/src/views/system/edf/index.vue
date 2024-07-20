@@ -78,7 +78,7 @@
       <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-tooltip content="绘制EEG" placement="top">
-            <el-button link type="primary" icon="Picture" @click="getData(scope.row)"
+            <el-button link type="primary" icon="Picture" @click="getDataChunk(scope.row)"
               v-hasPermi="['system:edf:getData']"></el-button>
           </el-tooltip>
           <el-tooltip content="删除" placement="top">
@@ -112,6 +112,8 @@
         </div>
       </template>
     </el-dialog>
+
+    <eeg-chart v-show="eegData.length" ref="chartRef" :eegData="eegData" :cardVisible="true" />
   </div>
 </template>
 
@@ -120,6 +122,7 @@ import { getToken } from "@/utils/auth";
 import { listEdf, delEdf, getEdfDataById } from "@/api/system/edf";
 import { onMounted, reactive, ref, toRef, toRefs, computed } from "vue";
 import useUserStore from "@/store/modules/user";
+import eegChart from "./eegChart";
 
 const { proxy } = getCurrentInstance();
 const edfList = ref([]);
@@ -130,6 +133,8 @@ const hasSelect = ref(false);
 const total = ref(0);
 const dateRange = ref([]);
 const userStore = useUserStore();
+const eegData = ref([]);
+const chartRef = ref();
 
 /** EDF导入参数 */
 const uploadParams = reactive({
@@ -366,27 +371,51 @@ const clearFileList = () => {
   uploadParams.totalFiles = 0;
 }
 
-/** 获取EDF数据 */
-const getData = async (row) => {
-  console.log(edfListWithCount.value)
+/** 获取EDF数据块 */
+const getDataChunk = async (row) => {
   /** 获取EDF数据请求体参数 */
-  // const getDataParam = {
-  //   edfId: row.edfId,
-  //   // selectedChannels: []
-  // }
+  const getDataParam = {
+    edfId: row.edfId,
+    selectedChannels: '',
+    start: 0,
+    end: 200
+  }
   // console.log('Sending request with params:', getDataParam);  // 打印请求体
-  // try {
-  //   let res = await getEdfDataById(getDataParam);
-  //   console.log('Response received:', res);  // 打印响应
-  //   if (res.code == 200) {
-  //     console.log('data:', res.data)
-  //     console.log('times:', res.times)
-  //     console.log('channel_names:', res.channelNames)
-  //   } else {
-  //     console.error('error:', res.msg)
-  //   }
-  // } catch (error) {
-  //   console.error('An error occurred while fetching EDF data:', error);
-  // }
-}
+  try {
+    const response = await getEdfDataById(getDataParam);
+
+    // 打印完整的响应对象
+    // console.log('Response received:', response);
+
+    // 直接处理 response 对象
+    const arrayBuffer = response;
+    // console.log('ArrayBuffer:', arrayBuffer);
+    // console.log('Type of ArrayBuffer:', typeof arrayBuffer);
+    // console.log('ArrayBuffer byte length:', arrayBuffer.byteLength);
+
+    // 确保 arrayBuffer 存在并且具有 byteLength 属性
+    if (arrayBuffer && arrayBuffer.byteLength !== undefined) {
+      // 数据是64位浮点数，使用 Float64Array
+      const float64Array = new Float64Array(arrayBuffer);
+      // console.log('Float64Array:', float64Array);
+
+      // 将数据转换为二维数组
+      const numSamples = getDataParam.end - getDataParam.start;
+      const numRows = float64Array.length / numSamples;
+      const data = [];
+      for (let i = 0; i < numRows; i++) {
+        data.push(float64Array.slice(i * numSamples, (i + 1) * numSamples));
+      }
+      console.log('EEG Data:', data);
+
+      // 更新组件的 EEG 数据
+      eegData.value = data;
+    } else {
+      console.error('Response data is not an ArrayBuffer or is undefined');
+      throw new Error('Response data is not an ArrayBuffer or is undefined');
+    }
+  } catch (error) {
+    console.error('An error occurred while fetching EDF data:', error);
+  }
+};
 </script>

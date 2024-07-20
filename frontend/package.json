@@ -26,6 +26,7 @@
     "jsencrypt": "3.3.2",
     "nprogress": "0.2.0",
     "pinia": "2.1.7",
+    "plotly.js-dist-min": "^2.34.0",
     "vue": "3.3.9",
     "vue-cropper": "1.1.1",
     "vue-router": "4.2.5"

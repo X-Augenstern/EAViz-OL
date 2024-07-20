@@ -31,4 +31,4 @@ export const delEdf = (edfIds) => request.delete('/system/edf/' + edfIds);
 // 使用 axios.post 方法时，第二个参数会作为请求体发送。
 // data 对象在发送时会被序列化为JSON格式，并包含在HTTP请求的请求体中。
 // 服务器端会解析这个请求体，并将其映射到相应的Pydantic模型中。
-export const getEdfDataById = (data) => request.post('/system/edf/getData', data);
+export const getEdfDataById = (data) => request.post('/system/edf/getData', data, { responseType: 'arraybuffer' });  // { timeout: 60000 } 自定义请求超时时间

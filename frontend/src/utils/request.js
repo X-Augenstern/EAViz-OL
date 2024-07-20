@@ -102,8 +102,26 @@ service.interceptors.response.use(res => {
   const code = res.data.code || 200;
   // 获取错误信息
   const msg = errorCode[code] || res.data.msg || errorCode['default']
+  // 打印响应数据类型和内容以帮助调试
+  // console.log('Response type:', res.request.responseType);
+  // console.log('Response data:', res.data);
   // 二进制数据则直接返回
   if (res.request.responseType === 'blob' || res.request.responseType === 'arraybuffer') {
+    // Blob 和 ArrayBuffer 都是 JavaScript 中用于处理二进制数据的对象，但它们有一些关键区别和用途。以下是它们的主要区别：
+    // Blob（Binary Large Object）表示一个不可变的、原始数据的类文件对象。它主要用于处理文件数据，可以通过JavaScript文件API进行读取和操作。
+    //    适用场景:
+    //    处理文件上传和下载。
+    //    生成和操作文件对象，例如生成图像、视频、音频文件。
+    //    读取方法: 可以使用 FileReader API 来读取 Blob 对象的内容，例如 readAsArrayBuffer、readAsText 和 readAsDataURL。
+    // ArrayBuffer 表示通用的、固定长度的原始二进制数据缓冲区。它是数据缓冲区的底层对象，可以通过视图对象如 TypedArray（例如 Uint8Array、Float32Array 等）来操作实际数据。
+    //    适用场景:
+    //    处理原始二进制数据，例如从WebSockets、WebRTC或其他低级API接收到的二进制数据。
+    //    高效的字节级操作，例如读取和修改二进制文件内容。
+    //    读取方法: 通过视图对象（例如 Uint8Array、Float32Array）来操作 ArrayBuffer 的内容。
+    // 选择合适的类型
+    // 使用 Blob: 如果需要处理文件数据，例如上传文件或生成文件下载链接，应该使用 Blob。
+    // 使用 ArrayBuffer: 如果需要对原始二进制数据进行高效的字节级操作，例如处理音频、视频或其他需要低级数据访问的场景，应该使用 ArrayBuffer。
+    // 由于需要处理从后端发送过来的二进制 EEG 数据并将其绘制出来，使用 ArrayBuffer 更为合适，因为它可以方便地转换为 Float32Array 进行数据处理和绘制。
     return res.data
   }
   if (code === 401) {

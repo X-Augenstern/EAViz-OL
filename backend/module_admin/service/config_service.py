@@ -10,6 +10,7 @@ class ConfigService:
     """
     参数配置管理模块服务层
     """
+
     @classmethod
     def get_config_list_services(cls, query_db: Session, query_object: ConfigPageQueryModel, is_page: bool = False):
         """
@@ -38,7 +39,8 @@ class ConfigService:
         config_all = ConfigDao.get_config_list(query_db, ConfigPageQueryModel(**dict()), is_page=False)
         for config_obj in config_all:
             if config_obj.get('configType') == 'Y':
-                await redis.set(f"{RedisInitKeyConfig.SYS_CONFIG.get('key')}:{config_obj.get('configKey')}", config_obj.get('configValue'))
+                await redis.set(f"{RedisInitKeyConfig.SYS_CONFIG.get('key')}:{config_obj.get('configKey')}",
+                                config_obj.get('configValue'))
 
     @classmethod
     async def query_config_list_from_cache_services(cls, redis, config_key: str):
@@ -91,7 +93,8 @@ class ConfigService:
 
         conflicting_config = ConfigDao.get_config_detail_by_info(query_db, page_object)
         if conflicting_config and conflicting_config.config_id != page_object.config_id:
-            return CrudResponseModel(is_success=False, message='存在冲突的字典数据参数配置')  # 一旦检测到冲突，应当立即停止进一步操作，并向用户反馈错误信息。
+            return CrudResponseModel(is_success=False,
+                                     message='存在冲突的字典数据参数配置')  # 一旦检测到冲突，应当立即停止进一步操作，并向用户反馈错误信息。
 
         try:
             edit_config = page_object.model_dump(exclude_unset=True)
@@ -103,6 +106,7 @@ class ConfigService:
         except Exception as e:
             query_db.rollback()
             return CrudResponseModel(is_success=False, message=f'更新失败: {str(e)}')
+
     @classmethod
     async def delete_config_services(cls, request: Request, query_db: Session, page_object: DeleteConfigModel):
         """
@@ -168,7 +172,8 @@ class ConfigService:
                 item['configType'] = '是'
             else:
                 item['configType'] = '否'
-        new_data = [{mapping_dict.get(key): value for key, value in item.items() if mapping_dict.get(key)} for item in data]
+        new_data = [{mapping_dict.get(key): value for key, value in item.items() if mapping_dict.get(key)} for item in
+                    data]
         binary_data = export_list2excel(new_data)
 
         return binary_data
