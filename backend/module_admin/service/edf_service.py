@@ -4,7 +4,6 @@ from utils.common_util import CamelCaseUtil
 from utils.log_util import logger
 from mne import io
 from os.path import exists
-from tempfile import NamedTemporaryFile
 
 
 class EdfService:
@@ -107,15 +106,18 @@ class EdfService:
                 selected_channels = query_object.selected_channels.split(',')
                 raw.pick(selected_channels)
             data = raw.get_data()
-            total_length = data.shape[1]
             start = query_object.start
-            end = query_object.end
-            if start < 0 or end > total_length or start >= end:
+            end = query_object.end  # end = None 表示到最后一个样本点（对于numpy，切片时如果不指定结束位置，即使用:，将自动扩展到数组的末尾）
+            if not start:
+                start = 0
+            # for i in range(len(data)):  # 用于测试前端接收到的数据是按行发送的还是按列发送的
+            #     logger.error(data[i][:10])
+            if start < 0 or (end is not None and end > data.shape[1]) or start >= (
+                    end if end is not None else data.shape[1]):
                 result['message'] = 'Invalid range！'
                 return CrudResponseModel(**result)
-            # 将数据转换为二进制数据
-            data_bytes = data[:, start:end].tobytes()
-            result['result'] = data_bytes
+            logger.error(data[:, start:end].shape)
+            result['result'] = data[:, start:end]
             result['message'] = f'成功获取ID为 {query_object.edf_id} 的EDF的数据！'
             result['is_success'] = True
             return CrudResponseModel(**result)

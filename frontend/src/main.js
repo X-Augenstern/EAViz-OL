@@ -67,5 +67,34 @@ app.config.globalProperties.selectDictLabels = selectDictLabels
 import globalComponents from '@/components'
 app.use(globalComponents);  // 安装插件 触发globalComponents内的install方法
 
+// Plotly.js 
+// 全局设置被动事件监听器
+// 默认情况下，事件监听器是非被动的，这意味着它们可以调用 preventDefault() 来阻止滚动。这可能会导致滚动性能不佳。
+// 通过将事件监听器标记为被动，可以告知浏览器这个监听器不会调用 preventDefault()，因此浏览器可以立即滚动，而不必等待监听器的执行结果，从而提高滚动性能。
+// 通过修改 EventTarget.prototype.addEventListener 方法，全局设置 touchstart 和 wheel 事件监听器为被动，以提高滚动性能。
+(function () {
+  let supportsPassive = false;
+  try {
+    const opts = Object.defineProperty({}, 'passive', {
+      get() {
+        supportsPassive = true;
+      }
+    });
+    window.addEventListener('test', null, opts);
+  } catch (e) { }
+
+  const addEventListener = EventTarget.prototype.addEventListener;
+  EventTarget.prototype.addEventListener = function (type, listener, options) {
+    if (type === 'touchstart' || type === 'wheel') {
+      if (typeof options === 'object') {
+        options.passive = true;
+      } else {
+        options = { passive: true };
+      }
+    }
+    addEventListener.call(this, type, listener, options);
+  };
+})();
+
 // 将应用挂载到挂载点上
 app.mount('#app')

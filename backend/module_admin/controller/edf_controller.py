@@ -9,7 +9,7 @@ from utils.page_util import PageResponseModel
 from module_admin.annotation.log_annotation import log_decorator
 from module_admin.aspect.interface_auth import CheckUserInterfaceAuth
 from os import path, remove
-from utils.common_util import bytes2file_response
+from utils.common_util import data2bytes_response
 
 edfController = APIRouter(prefix='/system/edf', dependencies=[Depends(LoginService.get_current_user)])
 
@@ -216,7 +216,7 @@ async def get_system_edf_data_by_id(request: Request,
         edf_data_query_result = EdfService.get_edf_data_by_id_services(query_db, edf_data_query)
         if edf_data_query_result.is_success:
             logger.info(edf_data_query_result.message)
-            return ResponseUtil.streaming(data=bytes2file_response(edf_data_query_result.result, 1024 * 1024))
+            return ResponseUtil.streaming(data=data2bytes_response(edf_data_query_result.result))
     except Exception as e:
         logger.exception(e)
         return ResponseUtil.error(msg=str(e))

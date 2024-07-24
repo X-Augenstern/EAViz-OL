@@ -171,28 +171,58 @@ def bytes2human(n, format_str="%(value).1f%(symbol)s"):  # %(value).1f 表示小
     return format_str % dict(symbol=symbols[0], value=n)  # 'B'
 
 
-def bytes2file_response(bytes_info, chunk_size=None):
+def bytes2file_response(bytes_info):
     """
-    分块数据传输生成器
+    工具方法：分块数据传输生成器（文件）
     :param bytes_info: 二进制数据
-    :param chunk_size: 每块大小
-    :return: 分块数据
 
     包含 yield 关键字时，这个函数被称为生成器（generator）。生成器是一种特殊类型的迭代器，它允许函数生成一个数据序列，而不是一次性返回所有数据。
 
     每次产生一个值后会暂停其状态（包括局部变量和执行位置），直到下一次从该生成器请求数据时再继续执行。这种机制使得生成器非常适合处理大数据流或需要懒加载（按需加载）的场景。
 
     假设 bytes_info 是一些二进制数据，这个生成器可以被用于按部分传输数据，例如在 Web 应用中流式传输文件内容，允许用户下载大文件而不必将整个文件一次性加载到内存中。
+
+    以 edf 数据为例，保存的数据类型为 Float64，一个 Float64 数值占用 8 个字节（64 位）
+
+    比如 demo_edf.edf 的 data 的形状为 (21, 9000)，共占用 21*9000*8 = 1512000B
+
+    将 chunk_size 预设为 512KB，即每个数据块包含 512*1024/8 = 65536 个 Float64 数值
+
+    21*9000/65536 ≈ 2.88 个数据块
     """
-    if not chunk_size:
-        # 并没有实际地将数据分块发送，而是将整个字节数据作为一个整体发送。
-        # 只是简单地将整个 bytes_info 对象作为一个块进行返回，并没有进行分块处理。
-        # 这样虽然它是一个生成器，但实际上仍然是一次性加载和发送所有数据，没有实现逐步发送数据的效果。
-        yield bytes_info
-    else:
-        for i in range(0, len(bytes_info), chunk_size):
-            # 实现真正的分块发送：分割数据，并逐块返回
-            yield bytes_info[i:i + chunk_size]
+    # if not chunk_size:
+    # 并没有实际地将数据分块发送，而是将整个字节数据作为一个整体发送。
+    # 只是简单地将整个 bytes_info 对象作为一个块进行返回，并没有进行分块处理。
+    # 这样虽然它是一个生成器，但实际上仍然是一次性加载和发送所有数据，没有实现逐步发送数据的效果。
+    yield bytes_info
+    # else:
+    #     for i in range(0, len(bytes_info), chunk_size):
+    #         # 实现真正的分块发送：分割数据，并逐块返回
+    #         # 此方法发送(21,9000)会按(1,9000)逐行发送
+    #         yield bytes_info[i:i + chunk_size]
+
+
+def data2bytes_response(data):
+    """
+    工具方法：分块数据传输生成器（edf数据）
+    :param data: edf数据 (num_channels * sampling points e.g.: 21*9000)
+    :return: 分块数据
+
+    将 chunk_size 预设为 3072 * num_channels，即每个数据块包含 3072 * num_channels 个 Float64 数值
+
+    若(21,9000)，每个数据块大小为 3072*21*8 = 516096/1024 = 504KB
+    21*9000/(3072*21) ≈ 2.93 个数据块：516096 + 516096 + 479808 = 21*9000*8
+
+    若(19,9000)，每个数据块大小为 3072*19*8 = 466944/1024 = 456KB
+    19*9000/(3072*19) ≈ 2.93 个数据块：466944 + 466944 + 434112 = 19*9000*8
+    """
+    chunk_size = 3072 * data.shape[0]  # 每次发送的 Float64（样本点） 数量
+    data = data.T.flatten()  # 逐列发送（先把所有通道的第一个样本点都发送完再发送第二个样本点）
+    for i in range(0, len(data), chunk_size):
+        chunk = data[i:i + chunk_size]
+        yield chunk.tobytes()
+        # print(len(chunk.tobytes()))
+        # 后端可以确保每次发送的数据块大小，但是前端接收到的数据块大小不一致的原因可能与网络传输、流式处理的机制有关 -> 使用缓冲区来累积接收到的数据，并按固定大小的块进行处理
 
 
 def export_list2excel(list_data: List):

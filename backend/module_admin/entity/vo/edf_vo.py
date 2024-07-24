@@ -93,17 +93,5 @@ class EdfDataQueryModel(BaseModel):
 
     edf_id: int
     selected_channels: Optional[str] = None
-    start: int
-    end: int
-
-
-# class EdfDataChunkResponseModel(BaseModel):
-#     """
-#     Edf数据块响应模型
-#     """
-#     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
-#
-#     chunk: List[List[float]]  # channels * sampling points e.g.: 21*9000
-#     start: int
-#     end: int
-#     total_length: int
+    start: int = None
+    end: int = None
