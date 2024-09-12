@@ -65,7 +65,7 @@ class UploadSettings:
     # 在生成文件的 URL 时提供了一个前缀路径，这通常用于区分文件的存储位置和访问路径。
     # 例如，在 web 应用中，文件可能存储在服务器的某个目录中，但通过 HTTP 访问时，需要一个特定的路径前缀来路由请求到正确的文件位置。（比如头像）
     UPLOAD_PREFIX = '/profile'
-    UPLOAD_PATH = 'files/upload_path'
+    UPLOAD_PATH = 'EAViz Files/upload_path'
     UPLOAD_MACHINE = 'A'
     DEFAULT_ALLOWED_EXTENSION = [
         # 图片
@@ -81,7 +81,7 @@ class UploadSettings:
         # EDF文件
         "edf"
     ]
-    DOWNLOAD_PATH = 'files/download_path'
+    DOWNLOAD_PATH = 'EAViz Files/download_path'
 
     def __init__(self):
         if not path.exists(self.UPLOAD_PATH):
@@ -124,13 +124,13 @@ class EAVizSettings:
     channels_21 = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7',
                    'F8', 'T3', 'T4', 'T5', 'T6', 'A1', 'A2', 'Fz', 'Cz', 'Pz']  # ESC SD
     channels_19 = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T3', 'T4',
-                   'T5', 'T6', 'Fz', 'Cz', 'Pz']  # AD SpiD HFO
+                   'T5', 'T6', 'Fz', 'Cz', 'Pz']  # AD SpiD SRD
 
     item_name = ['ESC', 'SD']
     cp_address = {  # item_name:cp_address
         'ESC': 'eaviz/ESC_SD/ESC/A3D-EEG_epoch-19.pth.tar',
         'SD': 'eaviz/ESC_SD/SD/0.15-EEG_epoch-19.pth.tar',
-        'HFO': 'eaviz/HFO/model_weights.pth',
+        'SRD': 'eaviz/SRD/model_weights.pth',
         'VD1': 'eaviz/VD/yolov5l_best.pt',
         'VD2': 'eaviz/VD/3d_Resnet_best.pth',
     }
@@ -147,7 +147,7 @@ class EAVizSettings:
                 'Sampling Frequency: 500Hz\n'
                 '19 channels, which can be seem per info (19 channels)\n'
                 'Sampling Time >= 1s(Template) | > 30s(Semantics)',
-        'HFO': 'This item requires the .EDF FILE:\n'
+        'SRD': 'This item requires the .EDF FILE:\n'
                'Sampling Frequency: 1000Hz\n'
                '19 channels, which can be seem per info (19 channels)\n'
                'Sampling Time >= 1s',

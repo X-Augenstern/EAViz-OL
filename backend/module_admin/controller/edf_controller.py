@@ -217,6 +217,8 @@ async def get_system_edf_data_by_id(request: Request,
         if edf_data_query_result.is_success:
             logger.info(edf_data_query_result.message)
             return ResponseUtil.streaming(data=data2bytes_response(edf_data_query_result.result))
+        else:
+            return ResponseUtil.error(msg=edf_data_query_result.message)
     except Exception as e:
         logger.exception(e)
         return ResponseUtil.error(msg=str(e))

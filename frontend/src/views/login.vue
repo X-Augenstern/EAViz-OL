@@ -145,7 +145,7 @@ getCookie();
   align-items: center;
   height: 100%;
   width: 100%;
-  background: url("../assets/images/login-background.jpg") no-repeat;
+  background: url("../assets/images/login-background.png") no-repeat;
   background-size: cover;
 }
 

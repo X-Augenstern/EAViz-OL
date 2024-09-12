@@ -28,7 +28,11 @@
         <!-- 使用div容器才能使flex布局生效 -->
         <div class="box">
           <!-- <img :src="userStore.avatar" class="avatar"> -->
-          <el-avatar :size="100" :src="userStore.avatar" :style="{ marginLeft: '15px' }"></el-avatar>
+          <el-avatar
+            :size="100"
+            :src="userStore.avatar"
+            :style="{ marginLeft: '15px' }"
+          ></el-avatar>
           <div class="bottom">
             <h3 class="title">{{ `${getTime()}好！${userStore.name}` }}</h3>
             <p class="subtitle">{{ title }}</p>
@@ -40,17 +44,36 @@
     <div style="padding: 10px">
       <a-row :gutter="24">
         <a-col :xl="24" :lg="24" :md="24" :sm="24" :xs="24">
-          <a-card class="projectList" :style="{ marginBottom: '24px' }" title="智能分析" :bordered="false" :loading="false"
-            :body-style="{ padding: 0 }" :head-style="{ fontSize: '20px' }">
+          <a-card
+            class="projectList"
+            :style="{ marginBottom: '24px' }"
+            title="智能分析"
+            :bordered="false"
+            :loading="false"
+            :body-style="{ padding: 0 }"
+            :head-style="{ fontSize: '20px' }"
+          >
             <!-- <template #extra>
               <a href=""> <span style="color: #1890ff">全部项目</span> </a>
             </template> -->
-            <a-card-grid v-for="item in eaviz_items" :key="item.id" class="projectGrid">
-              <a-card :body-style="{ padding: 0, fontSize: '16px' }" style="box-shadow: none" :bordered="false">
+            <a-card-grid
+              v-for="item in eavizItems"
+              :key="item.id"
+              class="projectGrid"
+            >
+              <a-card
+                :body-style="{ padding: 0, fontSize: '16px' }"
+                style="box-shadow: none"
+                :bordered="false"
+              >
                 <a-card-meta :description="item.description" class="w-full">
                   <template #title>
                     <div class="cardTitle">
-                      <a-avatar :size="25" :src="item.logo" :style="{ backgroundColor: item.color }">
+                      <a-avatar
+                        :size="25"
+                        :src="item.logo"
+                        :style="{ backgroundColor: item.color }"
+                      >
                         <!-- <span class="avatar-text">{{ item.logoTxt }}</span> -->
                       </a-avatar>
                       <!-- 
@@ -146,8 +169,8 @@ import {
   ListItemMeta,
   Avatar,
 } from "ant-design-vue";
-import 'ant-design-vue/dist/reset.css';
-import { getTime } from '../../utils/time';
+import "ant-design-vue/dist/reset.css";
+import { getTime } from "../../utils/time";
 
 export default {
   components: {
@@ -170,7 +193,7 @@ export default {
 import { Radar } from "@antv/g2plot";
 import EditableLinkGroup from "./editable-link-group.vue";
 import useUserStore from "../../store/modules/user";
-import { eaviz_items } from "../../eaviz/items";
+import { eavizItems } from "@/eaviz/config";
 let userStore = useUserStore();
 let title = import.meta.env.VITE_APP_TITLE;
 

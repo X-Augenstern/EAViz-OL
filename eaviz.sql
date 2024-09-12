@@ -192,8 +192,8 @@ insert into sys_menu values('118',  '系统接口', '3',   '3', 'swagger',    't
 insert into sys_menu values('119',  'ESC+SD',   '4',   '1', 'escsd',      'eaviz/escsd/index',        '', 1, 0, 'C', '0', '0', 'eaviz:escsd:use',         'skill',         'admin', sysdate(), '', null, '癫痫综合征分类及发作检测菜单');
 insert into sys_menu values('120',  'AD',       '4',   '2', 'ad',      	  'eaviz/ad/index',           '', 1, 0, 'C', '0', '0', 'eaviz:ad:use',            'skill',         'admin', sysdate(), '', null, '伪迹检测菜单');
 insert into sys_menu values('121',  'SpiD',     '4',   '3', 'spid',       'eaviz/spid/index',         '', 1, 0, 'C', '0', '0', 'eaviz:spid:use',          'skill',         'admin', sysdate(), '', null, '棘波检测菜单');
-insert into sys_menu values('122',  'VD',       '4',   '4', 'vd',         'eaviz/vd/index',           '', 1, 0, 'C', '0', '0', 'eaviz:vd:use',            'skill',         'admin', sysdate(), '', null, '视频发作检测菜单');
-insert into sys_menu values('123',  'HFO',      '4',   '5', 'hfo',        'eaviz/hfo/index',          '', 1, 0, 'C', '0', '0', 'eaviz:hfo:use',           'skill',         'admin', sysdate(), '', null, '高频波检测菜单');
+insert into sys_menu values('122',  'SRD',      '4',   '4', 'srd',        'eaviz/srd/index',          '', 1, 0, 'C', '0', '0', 'eaviz:srd:use',           'skill',         'admin', sysdate(), '', null, '高频波检测菜单');
+insert into sys_menu values('123',  'VD',       '4',   '5', 'vd',         'eaviz/vd/index',           '', 1, 0, 'C', '0', '0', 'eaviz:vd:use',            'skill',         'admin', sysdate(), '', null, '视频发作检测菜单');
 -- 三级菜单
 insert into sys_menu values('500',  '操作日志', '108', '1', 'operlog',    'monitor/operlog/index',    '', 1, 0, 'C', '0', '0', 'monitor:operlog:list',    'form',          'admin', sysdate(), '', null, '操作日志菜单');
 insert into sys_menu values('501',  '登录日志', '108', '2', 'logininfor', 'monitor/logininfor/index', '', 1, 0, 'C', '0', '0', 'monitor:logininfor:list', 'logininfor',    'admin', sysdate(), '', null, '登录日志菜单');
@@ -276,6 +276,16 @@ insert into sys_menu values('1057', '生成删除',     '117', '3', '#', '', '',
 insert into sys_menu values('1058', '导入代码',     '117', '4', '#', '', '', 1, 0, 'F', '0', '0', 'tool:gen:import',            '#', 'admin', sysdate(), '', null, '');
 insert into sys_menu values('1059', '预览代码',     '117', '5', '#', '', '', 1, 0, 'F', '0', '0', 'tool:gen:preview',           '#', 'admin', sysdate(), '', null, '');
 insert into sys_menu values('1060', '生成代码',     '117', '6', '#', '', '', 1, 0, 'F', '0', '0', 'tool:gen:code',              '#', 'admin', sysdate(), '', null, '');
+-- ESCSD分析按钮
+insert into sys_menu values('1065', 'ESCSD',     	'119', '1', '#', '', '', 1, 0, 'F', '0', '0', 'eaviz:escsd:analyse',        '#', 'admin', sysdate(), '', null, '');
+-- AD分析按钮
+insert into sys_menu values('1066', 'AD',     		'120', '1', '#', '', '', 1, 0, 'F', '0', '0', 'eaviz:ad:analyse',        	'#', 'admin', sysdate(), '', null, '');
+-- SpiD分析按钮
+insert into sys_menu values('1067', 'SpiD',     	'121', '1', '#', '', '', 1, 0, 'F', '0', '0', 'eaviz:spid:analyse',        	'#', 'admin', sysdate(), '', null, '');
+-- SRD分析按钮
+insert into sys_menu values('1068', 'SRD',     		'122', '1', '#', '', '', 1, 0, 'F', '0', '0', 'eaviz:srd:analyse',        	'#', 'admin', sysdate(), '', null, '');
+-- VD分析按钮
+insert into sys_menu values('1069', 'VD',     		'123', '1', '#', '', '', 1, 0, 'F', '0', '0', 'eaviz:vd:analyse',        	'#', 'admin', sysdate(), '', null, '');
 
 
 -- ----------------------------
@@ -581,8 +591,13 @@ insert into sys_dict_data values(28, 7,   '强退',        '7',       		'sys_ope
 insert into sys_dict_data values(29, 8,   '生成代码',    '8',       		'sys_oper_type',       '',   'warning', 'N', '0', 'admin', sysdate(), '', null, '生成操作');
 insert into sys_dict_data values(30, 9,   '清空数据',    '9',       		'sys_oper_type',       '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '清空操作');
 insert into sys_dict_data values(31, 10,  '获取EDF数据', '10',       		'sys_oper_type',       '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '获取EDF数据操作');
-insert into sys_dict_data values(32, 1,   '成功',        '0',       		'sys_common_status',   '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '正常状态');
-insert into sys_dict_data values(33, 2,   '失败',        '1',       		'sys_common_status',   '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '停用状态');
+insert into sys_dict_data values(32, 11,  '分析ESCSD', 	 '11',       		'sys_oper_type',       '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '分析ESCSD操作');
+insert into sys_dict_data values(33, 12,  '分析AD', 	 '12',       		'sys_oper_type',       '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '分析AD操作');
+insert into sys_dict_data values(34, 13,  '分析SpiD',    '13',       		'sys_oper_type',       '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '分析SpiD操作');
+insert into sys_dict_data values(35, 13,  '分析SRD',     '14',       		'sys_oper_type',       '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '分析SRD操作');
+insert into sys_dict_data values(36, 14,  '分析VD',      '15',       		'sys_oper_type',       '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '分析VD操作');
+insert into sys_dict_data values(37, 1,   '成功',        '0',       		'sys_common_status',   '',   'primary', 'N', '0', 'admin', sysdate(), '', null, '正常状态');
+insert into sys_dict_data values(38, 2,   '失败',        '1',       		'sys_common_status',   '',   'danger',  'N', '0', 'admin', sysdate(), '', null, '停用状态');
 
 
 -- ----------------------------

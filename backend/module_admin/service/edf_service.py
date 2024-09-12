@@ -48,7 +48,6 @@ class EdfService:
         try:
             for edf in page_object.edf_list:
                 added_edf = EdfDao.add_edf_dao(query_db, edf)
-                logger.error(added_edf.edf_id)
                 if not added_edf:
                     result['is_success'] = False
                     messages.append(f'{edf.edf_name} 已存在')
@@ -86,9 +85,9 @@ class EdfService:
         return CrudResponseModel(**result)
 
     @classmethod
-    def get_edf_data_by_id_services(cls, query_db: Session, query_object: EdfDataQueryModel):
+    def get_edf_raw_by_id_services(cls, query_db: Session, query_object: EdfRawQueryModel):
         """
-        根据edf的id以及所选通道获取edf数据service
+        根据edf的id以及所选通道获取edf raw service
         """
         result = dict(is_success=False, message='')
         try:
@@ -105,11 +104,32 @@ class EdfService:
             if query_object.selected_channels:
                 selected_channels = query_object.selected_channels.split(',')
                 raw.pick(selected_channels)
+            result['result'] = raw
+            result['message'] = f'成功获取ID为 {query_object.edf_id} 的EDF的raw！'
+            result['is_success'] = True
+            return CrudResponseModel(**result)
+        except Exception as e:
+            logger.error(f'Invalid .edf(raw)! Error info: {str(e)}')
+            result['message'] = f'Invalid .edf(raw)! Error info: {str(e)}'
+            raise e
+
+    @classmethod
+    def get_edf_data_by_id_services(cls, query_db: Session, query_object: EdfDataQueryModel):
+        """
+        根据edf的id以及所选通道获取edf数据service
+        """
+        result = dict(is_success=False, message='')
+
+        edf_raw_query_result = cls.get_edf_raw_by_id_services(query_db, EdfRawQueryModel(edfId=query_object.edf_id,
+                                                                                         selectedChannels=query_object.selected_channels))
+        if not edf_raw_query_result.is_success:
+            return edf_raw_query_result
+
+        try:
+            raw = edf_raw_query_result.result
             data = raw.get_data()
-            start = query_object.start
-            end = query_object.end  # end = None 表示到最后一个样本点（对于numpy，切片时如果不指定结束位置，即使用:，将自动扩展到数组的末尾）
-            if not start:
-                start = 0
+            start = query_object.start_time or 0
+            end = query_object.end_time  # end = None 表示到最后一个样本点（对于numpy，切片时如果不指定结束位置，即使用:，将自动扩展到数组的末尾）
             # for i in range(len(data)):  # 用于测试前端接收到的数据是按行发送的还是按列发送的
             #     logger.error(data[i][:10])
             if start < 0 or (end is not None and end > data.shape[1]) or start >= (
@@ -122,6 +142,6 @@ class EdfService:
             result['is_success'] = True
             return CrudResponseModel(**result)
         except Exception as e:
-            logger.error(f'Invalid .edf! Error info: {str(e)}')
-            result['message'] = f'Invalid .edf! Error info: {str(e)}'
+            logger.error(f'Invalid .edf(data)! Error info: {str(e)}')
+            result['message'] = f'Invalid .edf(data)! Error info: {str(e)}'
             raise e

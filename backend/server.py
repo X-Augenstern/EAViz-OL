@@ -26,6 +26,7 @@ from module_admin.controller.job_controller import jobController
 from module_admin.controller.server_controller import serverController
 from module_admin.controller.cache_controller import cacheController
 from module_admin.controller.common_controller import commonController
+from module_admin.controller.analysis_controller import analysisController
 
 
 # from utils.common_util import worship
@@ -88,7 +89,8 @@ controller_list = [
     {'router': jobController, 'tags': ['系统监控-定时任务']},
     {'router': serverController, 'tags': ['系统监控-菜单管理']},
     {'router': cacheController, 'tags': ['系统监控-缓存监控']},
-    {'router': commonController, 'tags': ['通用模块']}
+    {'router': commonController, 'tags': ['通用模块']},
+    {'router': analysisController, 'tags': ['智能分析模块']}
 ]
 
 for controller in controller_list:

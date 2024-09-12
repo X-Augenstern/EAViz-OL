@@ -85,13 +85,33 @@ class EdfUserPageQueryModel(EdfUserQueryModel):
 
 
 @as_query
-class EdfDataQueryModel(BaseModel):
+class EdfRawQueryModel(BaseModel):
     """
-    Edf数据查询模型
+    Edf raw查询模型
     """
     model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
 
     edf_id: int
     selected_channels: Optional[str] = None
-    start: int = None
-    end: int = None
+
+
+@as_query
+class EdfDataQueryModel(EdfRawQueryModel):
+    """
+    Edf数据查询模型
+    """
+    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+
+    start_time: int = None
+    end_time: int = None
+
+
+class EdfDataAnalyseGenericModel(BaseModel):
+    """
+    Edf数据分析通用模型
+    """
+    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
+
+    edf_id: int
+    method: str
+    start_time: float
