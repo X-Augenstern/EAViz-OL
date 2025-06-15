@@ -1,0 +1,91 @@
+version: '3.9'
+services:
+  mysql:
+    image: mysql:8.0.38
+    container_name: mysql-eaviz
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: 527644117
+    ports:
+      - "3306:3306"
+    volumes:
+      # 将宿主机上的 ./mysql/sql 目录挂载到 容器 内的 /docker-entrypoint-initdb.d 目录
+      # /docker-entrypoint-initdb.d 是 MySQL 官方镜像中定义的特殊目录
+      # 当 MySQL 容器首次启动时，如果此目录中有任何 .sql 文件或 .sh 脚本，它们将自动执行
+      # 这通常用于初始化数据库，比如创建表、插入数据或配置数据库
+      - ./mysql/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 15s
+    networks:
+      - my-network
+
+  # phpmyadmin https://hub.docker.com/_/phpmyadmin
+  # http://127.0.0.1:8898/ root 527644117
+  phpmyadmin:
+    image: phpmyadmin:5.2.1
+    container_name: phpmyadmin-eaviz
+    hostname: phpmyadmin
+    ports:
+      - 8898:80
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+      - MYSQL_ROOT_PASSWORD=527644117
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - my-network
+
+  # Redis
+  redis:
+    image: redis:6.2
+    container_name: redis-eaviz
+    restart: always
+    hostname: redis
+    privileged: true
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./redis/data:/data
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - my-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # RedisAdmin https://github.com/joeferner/redis-commander
+  # http://127.0.0.1:8080/ admin admin
+  redis-admin:
+    image: ghcr.io/joeferner/redis-commander:0.9.0
+    container_name: redis-admin-eaviz
+    hostname: redis-commander
+    restart: always
+    ports:
+      - 8080:8081
+    environment:
+      REDIS_HOSTS: "local:redis:6379:0:123456"
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin
+      LANG: C.UTF-8
+      LANGUAGE: C.UTF-8
+      LC_ALL: C.UTF-8
+    networks:
+      - my-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
+networks:
+  my-network:
+    driver: bridge

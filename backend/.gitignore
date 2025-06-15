@@ -1,9 +1,9 @@
 ### CUSTOM ###
 /EAViz Files
-/dev-ops-eaviz/
 /test.py
 /.env.dev
 /.env.prod
+/docs/dev-ops-eaviz/redis
 
 # Checkpoint stuff
 *.tar
