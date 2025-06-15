@@ -138,12 +138,3 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
-
-# User stuff ** 表示匹配任意数量的目录层级，因此可以忽略任意路径中的 EAViz Files 文件夹
-**/EAViz Files/
-
-# Checkpoint stuff
-*.tar
-
-# test files
-/backend/test.py

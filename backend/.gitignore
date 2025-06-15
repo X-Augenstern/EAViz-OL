@@ -1,0 +1,9 @@
+### CUSTOM ###
+/EAViz Files
+/dev-ops-eaviz/
+/test.py
+/.env.dev
+/.env.prod
+
+# Checkpoint stuff
+*.tar
