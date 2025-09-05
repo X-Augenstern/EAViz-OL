@@ -13,7 +13,7 @@ class ModelUtil:
     @classmethod
     def _get_cp_address(cls, item_name):
         # 若获取不到： F:\Python\EAViz_OL\backend\
-        return path.abspath(EAVizConfig.cp_address.get(item_name, ''))
+        return path.abspath(EAVizConfig.AddressConfig.get_cp_adr(item_name))
 
     @classmethod
     async def _init_esc_sd(cls, item_name=None):
@@ -69,10 +69,10 @@ class ModelUtil:
             logger.info(f"{item_name} 的预训练模型初始化成功")
         else:
             models = await cls._init_esc_sd()
-            for item, model in zip(EAVizConfig.item_name, models):
+            for item, model in zip(EAVizConfig.AddressConfig.CP_ITEM_NAME, models):
                 if model is not None:
                     model_dict[item] = model
-            if len(model_dict.keys()) == len(EAVizConfig.item_name):
+            if len(model_dict.keys()) == len(EAVizConfig.AddressConfig.CP_ITEM_NAME):
                 logger.info("所有预训练模型初始化成功")
             else:
                 logger.error("存在预训练模型初始化失败")

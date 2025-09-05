@@ -90,22 +90,21 @@
       <el-step title="请选择分析方法">
         <template #description>
           <el-collapse>
-            <template
+            <el-collapse-item
               v-for="(obj, idx) in eavizItems[itemIdx].methods"
               :key="idx"
+              :name="obj.name"
             >
-              <el-collapse-item :name="obj.name">
-                <template #title>
-                  <el-radio-group v-model="analyseParam.method" size="large">
-                    <!-- 使用 @click.stop 阻止点击事件冒泡 -->
-                    <el-radio-button :label="obj.name" @click.stop />
-                  </el-radio-group>
-                </template>
-                <div>
-                  {{ obj.description }}
-                </div>
-              </el-collapse-item>
-            </template>
+              <template #title>
+                <el-radio-group v-model="analyseParam.method" size="large">
+                  <!-- 使用 @click.stop 阻止点击事件冒泡 -->
+                  <el-radio-button :label="obj.name" @click.stop />
+                </el-radio-group>
+              </template>
+              <div>
+                {{ obj.description }}
+              </div>
+            </el-collapse-item>
           </el-collapse>
           <div class="empty-line"></div>
         </template>
@@ -124,23 +123,21 @@
           </el-slider> -->
           <!-- 将事件对象（value）显式传递给处理函数 -->
           <el-row>
-            <template v-for="idx in [0, 1]" :key="idx">
-              <el-col :span="5">
-                <div class="grid-content">
-                  <el-text type="primary" tag="b"
-                    >{{ idx === 0 ? "开始时间：" : "结束时间：" }}
-                  </el-text>
-                  <el-input-number
-                    v-model="selectedTime[idx]"
-                    :min="idx === 0 ? 0 : span"
-                    :max="idx === 0 ? maxTime - span : maxTime"
-                    :precision="2"
-                    controls-position="right"
-                    @input="handleInputNumber(idx, $event)"
-                  ></el-input-number>
-                </div>
-              </el-col>
-            </template>
+            <el-col v-for="idx in [0, 1]" :key="idx" :span="5">
+              <div class="grid-content">
+                <el-text type="primary" tag="b"
+                  >{{ idx === 0 ? "开始时间：" : "结束时间：" }}
+                </el-text>
+                <el-input-number
+                  v-model="selectedTime[idx]"
+                  :min="idx === 0 ? 0 : span"
+                  :max="idx === 0 ? maxTime - span : maxTime"
+                  :precision="2"
+                  controls-position="right"
+                  @input="handleInputNumber(idx, $event)"
+                ></el-input-number>
+              </div>
+            </el-col>
           </el-row>
           <div class="empty-line"></div>
         </template>
@@ -165,11 +162,77 @@
         <div class="empty-line"></div>
       </el-step>
     </el-steps>
+
+    <!-- 结果展示区 -->
+    <el-card class="result-area" shadow="hover">
+      <template #header>
+        <div class="card-header">
+          <span>分析结果</span>
+        </div>
+      </template>
+
+      <el-skeleton :rows="4" animated v-if="loading" />
+
+      <div v-else>
+        <el-alert
+          v-if="percentage === 100"
+          title="分析完成"
+          type="success"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 16px"
+        />
+        <div v-if="resultImages.length > 0" class="image-section">
+          <el-text
+            type="primary"
+            tag="b"
+            size="large"
+            style="display: block; margin-bottom: 16px"
+          >
+            分析结果图片
+          </el-text>
+          <div class="image-grid">
+            <el-image
+              v-for="(img, idx) in resultImages"
+              :key="idx"
+              :src="img"
+              :preview-src-list="resultImages"
+              fit="contain"
+              class="result-image"
+              @load="onImageLoad(idx)"
+              @error="onImageError(idx, img)"
+            >
+              <template #error>
+                <div class="image-slot">
+                  图片加载失败
+                  <br />
+                  <small>{{ img }}</small>
+                </div>
+              </template>
+              <template #placeholder>
+                <div class="image-slot">图片加载中...</div>
+              </template>
+            </el-image>
+          </div>
+        </div>
+        <div v-else class="no-data">
+          <el-empty description="暂无分析结果图片" />
+        </div>
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup name="ESCSD">
-import { reactive, ref, toRefs, watch } from "vue";
+import {
+  reactive,
+  ref,
+  toRefs,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+} from "vue";
 import { eavizItemsIdx, eavizItems } from "../../../eaviz/config";
 import { useEDFStore } from "../../../store/modules/edf";
 import { escsdAnalyse } from "../../../api/eaviz/eaviz";
@@ -182,7 +245,9 @@ const itemIdx = eavizItemsIdx.escsd;
 const maxTime = ref(1000);
 const span = eavizItems[itemIdx].span;
 const selectedTime = ref([0, span]);
-const percentage = ref(100);
+const percentage = ref(0);
+const resultImages = ref([]); // 分析结果图片
+
 watch(
   () => selectedTime.value[0],
   (newVal) => {
@@ -236,9 +301,65 @@ const handleInputNumber = (idx, value) => {
 
 // 开始分析
 const handleAnalyse = () => {
-  console.log(analyseParam);
-  escsdAnalyse(analyseParam);
+  loading.value = true;
+  percentage.value = 10;
+  // 组装参数，包含起止时间与方法
+  const payload = { ...analyseParam };
+  payload.startTime = selectedTime.value[0];
+  payload.endTime = selectedTime.value[1];
+
+  escsdAnalyse(payload)
+    .then((res) => {
+      // 兼容不同的返回结构：可能是 {code, data:{...}} 或直接 {...}
+      const data = res?.data ?? res;
+
+      // 处理图片数据：后端返回的 images 数组
+      if (Array.isArray(data?.images)) {
+        resultImages.value = data.images.map((url) => {
+          // 如果URL已经是完整路径，直接返回
+          if (url.startsWith("http")) {
+            return url;
+          }
+          // 后端现在返回包含 root_path 的URL，直接使用即可
+          console.log("后端返回的图片URL:", url);
+          return url;
+        });
+      } else {
+        console.log("没有找到图片数据");
+        resultImages.value = [];
+      }
+
+      // 图表相关数据暂时不需要处理
+
+      percentage.value = 100;
+      loading.value = false;
+    })
+    .catch((error) => {
+      console.error("分析失败:", error);
+      resultImages.value = [];
+      percentage.value = 0;
+      loading.value = false;
+    });
 };
+
+// 组件挂载时的初始化
+onMounted(() => {
+  // 可以在这里添加其他初始化逻辑
+});
+
+// 图片加载成功事件
+const onImageLoad = (idx) => {
+  console.log(`图片 ${idx} 加载成功`);
+};
+
+// 图片加载失败事件
+const onImageError = (idx, imgUrl) => {
+  console.error(`图片 ${idx} 加载失败:`, imgUrl);
+};
+
+onBeforeUnmount(() => {
+  // 清理资源
+});
 </script>
 
 <style lang="scss" scoped>
@@ -272,5 +393,41 @@ const handleAnalyse = () => {
 /* 使用 :deep(<inner-selector>) 覆盖 el-progress 组件的百分比文字样式 */
 :deep(.el-progress__text) {
   font-size: 15px !important; /* 设置百分比文字的大小，例如12px */
+}
+
+.result-area {
+  margin-top: 16px;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  max-width: 100%;
+}
+
+.result-image {
+  width: 100%;
+  height: 220px;
+  background: #f6f8fa;
+  border: 1px solid #ebeef5;
+}
+
+.image-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #999;
+}
+
+.image-section {
+  margin-top: 16px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px 0;
 }
 </style>

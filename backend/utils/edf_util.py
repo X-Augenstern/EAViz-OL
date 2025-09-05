@@ -2,6 +2,7 @@ from typing import List
 from config.env import EAVizConfig
 from numpy import array
 from mne import channels, io
+from mne.io.edf.edf import RawEDF
 from utils.log_util import logger
 from os import remove
 
@@ -11,10 +12,24 @@ class EdfUtil:
     Edf工具类
     """
 
-    @classmethod
-    def map_channels(cls, selected_channels: List, raw_channels: List):
+    @staticmethod
+    def get_montage():
+        position = {}
+        for i in range(19):
+            ch_name = EAVizConfig.ChannelEnum.TPM.value[i]
+            pos = [EAVizConfig.MontageEnum.XPOS.value[i], EAVizConfig.MontageEnum.YPOS.value[i],
+                   EAVizConfig.MontageEnum.ZPOS.value[i]]
+            position[ch_name] = array(pos)
+        montage = channels.make_dig_montage(ch_pos=position)
+        return montage
+
+    @staticmethod
+    def map_channels(selected_channels: List, raw_channels: List):
         """
         将raw中的通道映射为统一的通道名
+        :param selected_channels: 用户选择的目标通道
+        :param raw_channels: EDF文件中实际的通道
+        :return: 更新后的 selected_channels, 匹配的 mapping_list
         """
         # 获得selected_channels在raw_edf上的映射：mapping_list（目标：数量相等，名字对应）
         tmp_channels = selected_channels.copy()
@@ -40,7 +55,7 @@ class EdfUtil:
     @classmethod
     def normalize_edf(cls, edf_path: str, selected_channels: str = None):
         """
-        按规定的21通道名及通道顺序调整edf格式。若规范失败，直接删除上传文件。
+        按规定的通道名及通道顺序调整edf格式。若规范失败，直接删除上传文件。
         """
         try:
             if not selected_channels:
@@ -88,35 +103,9 @@ class EdfUtil:
             except Exception as remove_error:
                 logger.error(f'Failed to remove invalid .edf: {edf_path}. Error info: {str(remove_error)}')
             raise e
-
-    @classmethod
-    def get_montage(cls):
+    @staticmethod
+    def normal_filter(raw: RawEDF):
         """
-        获取绘制TPM所需的montage
+        50Hz、1-70Hz
         """
-        xpos = [-0.0293387312092767, -0.0768097954926838, -0.051775707348028, -0.0949421285668141, -0.0683372810321719,
-                -0.0768097954926838, -0.051775707348028,
-                4.18445162392412E-18, -0.0293387312092767, 0.0293387312092767, 0.051775707348028, 0.0768097954926838,
-                0.0683372810321719, 0.0949421285668141,
-                0.051775707348028, 0.0768097954926838, 0.0293387312092767, 4.18445162392412E-18, 0]
-
-        ypos = [0.0902953300444008, 0.0558055829928292, 0.0639376737816708, 0, 0, -0.0558055829928292,
-                -0.0639376737816708,
-                -0.0683372810321719,
-                -0.0902953300444008, -0.0902953300444008, -0.0639376737816708, -0.0558055829928292, 0, 0,
-                0.0639376737816708,
-                0.0558055829928292, 0.0902953300444008, 0.0683372810321719, 0]
-
-        zpos = [-0.00331545218673759, -0.00331545218673759, 0.0475, -0.00331545218673759, 0.0659925451936047,
-                -0.00331545218673759, 0.0475, 0.0659925451936047,
-                -0.00331545218673759, -0.00331545218673759, 0.0475, -0.00331545218673759, 0.0659925451936047,
-                -0.00331545218673759, 0.0475, -0.00331545218673759,
-                -0.00331545218673759, 0.0659925451936047, 0.095]
-
-        position = {}
-        for i in range(19):
-            ch_name = EAVizConfig.channels_TPM[i]
-            pos = [xpos[i], ypos[i], zpos[i]]
-            position[ch_name] = array(pos)
-        montage = channels.make_dig_montage(ch_pos=position)
-        return montage
+        return raw.notch_filter(freqs=50).filter(l_freq=1, h_freq=70)

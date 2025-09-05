@@ -4,6 +4,8 @@ from argparse import ArgumentParser
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from dotenv import load_dotenv
+from enum import Enum
+from matplotlib.colors import TABLEAU_COLORS
 
 
 class AppSettings(BaseSettings):
@@ -81,6 +83,7 @@ class UploadSettings:
         # EDF文件
         "edf"
     ]
+    DOWNLOAD_PREFIX = '/download'
     DOWNLOAD_PATH = 'EAViz Files/download_path'
 
     def __init__(self):
@@ -117,43 +120,203 @@ class EAVizSettings:
     """
     EAViz配置
     """
-    freq_bands = [(0, 4), (4, 8), (8, 12), (12, 30), (30, 45)]
 
-    channels_TPM = ['Fp1', 'F7', 'F3', 'T3', 'C3', 'T5', 'P3', 'Pz', 'O1', 'O2', 'P4', 'T6', 'C4', 'T4',
-                    'F4', 'F8', 'Fp2', 'Fz', 'Cz']  # 19
-    channels_21 = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7',
-                   'F8', 'T3', 'T4', 'T5', 'T6', 'A1', 'A2', 'Fz', 'Cz', 'Pz']  # ESC SD
-    channels_19 = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T3', 'T4',
-                   'T5', 'T6', 'Fz', 'Cz', 'Pz']  # AD SpiD SRD
+    class ModelConfig:
+        ESC_SD_model = ['', 'DSMN-ESS', 'R3DClassifier']
+        AD_model = ['', 'Resnet34_AE_BCELoss', 'Resnet34_SkipAE_BCELoss', 'Resnet34_MemAE_BCELoss',
+                    'Resnet34_VAE_BCELoss', 'SENet18_AE_BCELoss', 'SENet18_SkipAE_BCELoss',
+                    'SENet18_MemAE_BCELoss', 'SENet18_VAE_BCELoss', 'VGG16_AE_BCELoss', 'VGG16_SkipAE_BCELoss',
+                    'VGG16_MemAE_BCELoss', 'VGG16_VAE_BCELoss', 'DenseNet121_AE_BCELoss',
+                    'DenseNet121_SkipAE_BCELoss', 'DenseNet121_MemAE_BCELoss', 'DenseNet121_VAE_BCELoss']
+        SpiD_model = ['', 'Template Matching', 'Unet+ResNet34']
+        SRD_model = ['', 'MKCNN']
+        VD_model = ['', 'yolov5l_3dResnet']
 
-    item_name = ['ESC', 'SD']
-    cp_address = {  # item_name:cp_address
-        'ESC': 'eaviz/ESC_SD/ESC/A3D-EEG_epoch-19.pth.tar',
-        'SD': 'eaviz/ESC_SD/SD/0.15-EEG_epoch-19.pth.tar',
-        'SRD': 'eaviz/SRD/model_weights.pth',
-        'VD1': 'eaviz/VD/yolov5l_best.pt',
-        'VD2': 'eaviz/VD/3d_Resnet_best.pth',
-    }
-    input_des = {  # item_name:input_des
-        'ESC_SD': 'This item requires the .EDF FILE:\n'
-                  'Sampling Frequency: 1000Hz\n'
-                  '21 channels, which can be seem per info (21 channels)\n'
-                  'Sampling Time >= 4s',
-        'AD': 'This item requires the .EDF FILE:\n'
-              'Sampling Frequency: 1000Hz\n'
-              '19 channels, which can be seem per info (19 channels)\n'
-              'Sampling Time >= 11s',
-        'SpiD': 'This item requires the .EDF FILE:\n'
-                'Sampling Frequency: 500Hz\n'
-                '19 channels, which can be seem per info (19 channels)\n'
-                'Sampling Time >= 1s(Template) | > 30s(Semantics)',
-        'SRD': 'This item requires the .EDF FILE:\n'
-               'Sampling Frequency: 1000Hz\n'
-               '19 channels, which can be seem per info (19 channels)\n'
-               'Sampling Time >= 1s',
-        'VD': 'This item requires the .MP4 FILE:\n'
-              'Frame per Second: 20'
-    }
+        ESC_SD_model_des = 'This model requires the <INPUT> .EDF FILE:\n' \
+                           'sfreq: 1000Hz\n' \
+                           '21 channels, which can be selected in Select Signals Form per button ESC + SD (21 channels)\n' \
+                           'preprocessing: None\n' \
+                           'time span: 4s'
+        AD_model_des = 'This model requires the <INPUT> .EDF FILE:\n' \
+                       'sfreq: 1000Hz\n' \
+                       '19 channels, which can be selected in Select Signals Form per button AD, SpiD (19 channels)\n' \
+                       'preprocessing: None\n' \
+                       'time span: 11s'
+        SpiD_model_des = 'This model requires the <INPUT> .EDF FILE:\n' \
+                         'sfreq: 500Hz\n' \
+                         '19 channels, which can be selected in Select Signals Form per button AD, SpiD (19 channels)\n' \
+                         'preprocessing: None\n' \
+                         'time span: >=0.3s(Template) | multiple of 30s(Semantics)'
+        SRD_model_des = 'This model requires the <INPUT> .EDF FILE:\n' \
+                        'sfreq: 1000Hz\n' \
+                        'preprocessing: None\n' \
+                        'time span: >=1s'
+        VD_model_des = 'This model requires the <INPUT> .MP4 FILE:\n' \
+                       'frame per second: 20'
+
+        @classmethod
+        def get_des(cls, model):
+            if model in cls.ESC_SD_model:
+                return cls.ESC_SD_model_des
+            elif model in cls.AD_model:
+                return cls.AD_model_des
+            elif model in cls.SpiD_model:
+                return cls.SpiD_model_des
+            elif model in cls.SRD_model:
+                return cls.SRD_model_des
+            elif model == 'VD':
+                return cls.VD_model_des
+
+    class ChannelEnum(Enum):
+        """
+        .name 获取枚举成员的名字，通过 .value 获取枚举成员的具体值
+        """
+        TPM = ['Fp1', 'F7', 'F3', 'T3', 'C3', 'T5', 'P3', 'Pz', 'O1', 'O2', 'P4', 'T6', 'C4', 'T4',
+               'F4', 'F8', 'Fp2', 'Fz', 'Cz']  # 19
+        CH21 = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7',
+                'F8', 'T3', 'T4', 'T5', 'T6', 'A1', 'A2', 'Fz', 'Cz', 'Pz']  # 21 + A1、A2
+        CH19 = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T3', 'T4',
+                'T5', 'T6', 'Fz', 'Cz', 'Pz']  # 19
+        COLLECTED = ['Fp1', 'F7', 'F3', 'T3', 'C3', 'T5', 'P3', 'O1', 'Fp2', 'F8', 'F4', 'T4', 'C4', 'T6', 'P4',
+                     'O2', 'Fz', 'Cz', 'Pz', 'A1', 'A2']  # 21
+
+    class PSDEnum(Enum):
+        COLORS = list(TABLEAU_COLORS.values())  # 获取颜色列表
+        FREQ_LABELS = ["Delta", "Theta", "Alpha", "Beta", "Gamma"]
+        FREQ_BANDS = [(0, 4), (4, 8), (8, 12), (12, 30), (30, 45)]
+
+    class MontageEnum(Enum):
+        XPOS = [-0.0293387312092767, -0.0768097954926838, -0.051775707348028, -0.0949421285668141, -0.0683372810321719,
+                -0.0768097954926838, -0.051775707348028,
+                4.18445162392412E-18, -0.0293387312092767, 0.0293387312092767, 0.051775707348028, 0.0768097954926838,
+                0.0683372810321719, 0.0949421285668141,
+                0.051775707348028, 0.0768097954926838, 0.0293387312092767, 4.18445162392412E-18, 0]
+
+        YPOS = [0.0902953300444008, 0.0558055829928292, 0.0639376737816708, 0, 0, -0.0558055829928292,
+                -0.0639376737816708,
+                -0.0683372810321719,
+                -0.0902953300444008, -0.0902953300444008, -0.0639376737816708, -0.0558055829928292, 0, 0,
+                0.0639376737816708,
+                0.0558055829928292, 0.0902953300444008, 0.0683372810321719, 0]
+
+        ZPOS = [-0.00331545218673759, -0.00331545218673759, 0.0475, -0.00331545218673759, 0.0659925451936047,
+                -0.00331545218673759, 0.0475, 0.0659925451936047,
+                -0.00331545218673759, -0.00331545218673759, 0.0475, -0.00331545218673759, 0.0659925451936047,
+                -0.00331545218673759, 0.0475, -0.00331545218673759,
+                -0.00331545218673759, 0.0659925451936047, 0.095]
+
+        BRAIN_REGIONS = {
+            "中央区": ["C3", "C4", "Cz"],
+            "枕区": ["T5", "T6", "O1", "O2"],
+            "顶区": ["P3", "P4", "Pz"],
+            "颞区": ["F7", "F8", "T3", "T4"],
+            "额区": ["Fp1", "Fp2", "F3", "F4", "Fz"]
+        }
+
+    class AddressConfig:
+        BASE_ROOT = UploadSettings.DOWNLOAD_PATH
+        BASE_CP_ROOT = 'eaviz'
+        CP_ITEM_NAME = ['ESC', 'SD', 'SRD', 'VD']
+        FOLDER = {
+            "ESC_SD/ESC": ["feature_map", "stft_feature", "res"],
+            "ESC_SD/SD": ["feature_map", "stft_feature", "res"],
+            "AD": ["index", "topomap", "res"],
+            "SpiD": ["index", "family", "res", "mat", "npz"],
+            "SRD": [],
+            "VD": []
+        }
+
+        @classmethod
+        def setup(cls):
+            for module, subdirs in cls.FOLDER.items():
+                base_path = path.join(cls.BASE_ROOT, module)
+                makedirs(base_path, exist_ok=True)
+                for sub in subdirs:
+                    makedirs(path.join(base_path, sub), exist_ok=True)
+
+            if not path.exists(cls.BASE_CP_ROOT):
+                raise FileNotFoundError(
+                    f"⚠️ 模型权重目录缺失: {cls.BASE_CP_ROOT} ，请手动放置权重文件。"
+                )
+
+        @classmethod
+        def get_esc_adr(cls, name):
+            base = path.join(cls.BASE_ROOT, "ESC_SD", "ESC")
+            hashtable = {
+                'fm': path.join(base, "feature_map", "feature_map.png"),
+                'stft': path.join(base, "stft_feature", "stft_feature.png"),
+                'res': path.join(base, "res", "res.png"),
+            }
+            return path.abspath(hashtable.get(name, ''))
+
+        @classmethod
+        def get_sd_adr(cls, name):
+            base = path.join(cls.BASE_ROOT, "ESC_SD", "SD")
+            hashtable = {
+                'fm': path.join(base, "feature_map", "feature_map.png"),
+                'stft': path.join(base, "stft_feature", "stft_feature.png"),
+                'res': path.join(base, "res", "res.png"),
+            }
+            return path.abspath(hashtable.get(name, ''))
+
+        @classmethod
+        def get_ad_adr(cls, name, model_name=None):
+            base = path.join(cls.BASE_ROOT, "AD")
+            hashtable = {
+                'idx': path.join(base, "index", f"{model_name}_light.html"),
+                'topo': path.join(base, "topomap", "topomap.png"),
+                'res': path.join(base, "res", "res.png")
+            }
+            return path.abspath(hashtable.get(name, ''))
+
+        @classmethod
+        def get_spid_adr(cls, name):
+            base = path.join(cls.BASE_ROOT, "SpiD")
+            hashtable = {
+                'idx': path.join(base, "index", "idx_light.html"),
+                'fam': path.join(base, "family", "fam_light.png"),
+                'res': path.join(base, "res", "res.png"),
+                'mat': path.join(base, "mat"),
+                'npz': path.join(base, "npz")
+            }
+            return path.abspath(hashtable.get(name, ''))
+
+        @classmethod
+        def get_cp_adr(cls, name):
+            base = path.join(cls.BASE_CP_ROOT)
+            hashtable = {
+                'ESC': path.join(base, "ESC_SD", "ESC", "A3D-EEG_epoch-19.pth.tar"),
+                'SD': path.join(base, "ESC_SD", "SD", "0.15-EEG_epoch-19.pth.tar"),
+                'SRD': path.join(base, "SRD", "model_weights.pth"),
+                'VD': {
+                    'cp1': path.join(base, "VD", "yolov5l_best.pt"),
+                    'cp2': path.join(base, "VD", "3d_Resnet_best.pth")
+                }
+            }
+            value = hashtable.get(name, '')
+            if isinstance(value, dict):
+                return {k: path.abspath(v) for k, v in value.items()}
+            return path.abspath(value) if value else ''
+
+        # # upload/2024/07/05
+        # relative_path = (f'upload/'
+        #                  f'{datetime.now().strftime("%Y")}/'
+        #                  f'{datetime.now().strftime("%m")}/'
+        #                  f'{datetime.now().strftime("%d")}')
+        # # files/upload_path/upload/2024/07/05
+        # dir_path = path.join(UploadConfig.UPLOAD_PATH, relative_path)
+        # try:
+        #     makedirs(dir_path)
+        # except FileExistsError:
+        #     pass
+        # # demo_edf_20240705132949A605.edf
+        # filename = (f'{file.filename.rsplit(".", 1)[0]}_'
+        #             f'{datetime.now().strftime("%Y%m%d%H%M%S")}'
+        #             f'{UploadConfig.UPLOAD_MACHINE}'
+        #             f'{UploadUtil.generate_random_number()}.'
+        #             f'{file.filename.rsplit(".")[-1]}')
+        # # files/upload_path/upload/2024/07/05/demo_edf_20240705132949A605.edf
+        # filepath = path.join(dir_path, filename)
 
 
 class GetConfig:
@@ -206,7 +369,9 @@ class GetConfig:
 
     @lru_cache()
     def get_eaviz_config(self):
-        return EAVizSettings()
+        cfg = EAVizSettings()
+        cfg.AddressConfig.setup()
+        return cfg
 
     @staticmethod
     def parse_cli_args():

@@ -1,23 +1,28 @@
 from io import BytesIO
 from cv2 import imdecode, IMREAD_COLOR, resize
 from mne import time_frequency
-from numpy import asarray, float32, empty, uint8, squeeze, transpose, flipud
+from numpy import asarray, uint8, squeeze, transpose, flipud
 from seaborn import heatmap
 from torchvision.transforms import transforms
-from matplotlib import pyplot as plt
-from torch import tensor
+from matplotlib.pyplot import subplot, figure, imshow, title, xlabel, colorbar, axis, tight_layout, savefig, close, \
+    xticks, ylabel, yticks
+from torch import float32, empty
+from config.env import EAVizConfig
 
 
-def plot_feature_map(layer_label, feature_map):
+def plot_feature_map(item_name, layer_label, feature_map):
     """
     Plot the feature map results of each convolutional layer during the detection process to show.
+    :param item_name: the name of the item (ESC/SD)
     :param layer_label: list of each layer
     :param feature_map: list[list] of the result of each layer
-    :param fm_signal: emit bytes of the plotted feature map
     """
-    plt.figure(figsize=(12, 8))
+    text_size = 20
+    font_family = "Microsoft YaHei"
+
+    figure(figsize=(12, 8))
     for i in range(len(layer_label)):
-        ax = plt.subplot(2, 3, i + 1)
+        ax = subplot(2, 3, i + 1)
         im = feature_map[i]
         # [N, C, D, H, W] -> [C, D, H, W] 将batch维度压缩掉，detach阻断反向梯度传播
         # Batch C（RGB通道） D（EEG通道） H（时间） W（频率）
@@ -30,27 +35,29 @@ def plot_feature_map(layer_label, feature_map):
         # (6, 5, 5, 128)
         # (3, 3, 3, 256)
         # (2, 2, 2, 512)
-        plt.imshow(flipud(im[1, :, :, 1]), origin='lower')  # 垂直翻转图像数据再与y轴一起翻转
-        plt.title(f'{layer_label[i]}', fontsize=16)
+        imshow(flipud(im[1, :, :, 1]), origin='lower')  # 垂直翻转图像数据再与y轴一起翻转
+        title(f'{layer_label[i]}', fontproperties=font_family, fontsize=text_size)
         # y轴已在get_stft_feature中经过了翻转，此处不需要再翻转
 
-    plt.tight_layout()
-    buffer = BytesIO()
-    plt.savefig(buffer, format='png', dpi=300)
-    plt.savefig('./fm.png', format='png', dpi=300)
-    buffer.seek(0)
-    # fm_signal.emit(buffer.getvalue())
-    print("plot_feature_map")
-    plt.close()
+        # 设置坐标轴字体大小
+        xticks(fontsize=text_size, rotation=20)  # x轴刻度字体大小
+        yticks(fontsize=text_size)  # y轴刻度字体大小
+
+    tight_layout()
+    if item_name == 'SD':
+        savefig(EAVizConfig.AddressConfig.get_sd_adr('fm'), format='png', dpi=300)
+    elif item_name == 'ESC':
+        savefig(EAVizConfig.AddressConfig.get_esc_adr('fm'), format='png', dpi=300)
+    close()
 
 
-def plot_feature(power_slice):
+def plot_feature(item_name, power_slice):
     """
     Plot one STFT figure to show.
+    :param item_name: the name of the item (ESC/SD)
     :param power_slice: power in one channel
-    :param feature_signal: emit bytes of the plotted feature figure
     """
-    plt.figure()
+    figure()
     sns_plot = heatmap(power_slice, cmap='jet', cbar=False)
     sns_plot.invert_yaxis()  # 反转Y轴坐标，即将最高值置于顶部，最低值置于底部
     # 获取当前的 x 轴刻度位置
@@ -71,29 +78,25 @@ def plot_feature(power_slice):
     ytick_labels = [f'{i * 5}' for i in range(len(ytick_positions))]  # 将刻度位置乘以5
     sns_plot.set_yticklabels(ytick_labels)
 
-    plt.xlabel('Time [s]')
-    plt.ylabel('Frequency [Hz]')
+    xlabel('Time [s]')
+    ylabel('Frequency [Hz]')
 
     # 获取热力图对象的所有子对象，然后找到与热力图相关的映射对象
     mappable = sns_plot.get_children()[0]
-    cbar = plt.colorbar(mappable, label='Magnitude')
+    cbar = colorbar(mappable, label='Magnitude')
     cbar.outline.set_visible(False)
 
-    buffer = BytesIO()
-    plt.savefig(buffer, format='png', dpi=300)
-    plt.savefig('./f.png', format='png', dpi=300)
-    buffer.seek(0)
-    # feature_signal.emit(buffer.getvalue())
-    print("plot_feature")
-    plt.close()
+    if item_name == 'SD':
+        savefig(EAVizConfig.AddressConfig.get_sd_adr('stft'), format='png', dpi=300)
+    elif item_name == 'ESC':
+        savefig(EAVizConfig.AddressConfig.get_esc_adr('stft'), format='png', dpi=300)
+    close()
 
 
-def get_stft_feature(raw, adr_stft, save=False):
+def get_stft_feature(raw):
     """
     Get the STFT feature of raw.
     :param raw: time span == 4s with 1-70, 50Hz filtering
-    :param adr_stft: save path of the generated STFT figures
-    :param save: save or not
     :return: stft_buffer, power, data
     """
     # data, times = raw[:]  # data：(21,4000) times：(4000)
@@ -139,28 +142,28 @@ def get_stft_feature(raw, adr_stft, save=False):
         guiyihua,  # 转换为tensor格式，这个格式可以直接输入进神经网络了
     ])
 
-    stft_buffer = empty((21, 3, 32, 32), float32)
+    stft_buffer = empty((21, 3, 32, 32), dtype=float32)
     for i in range(21):
-        plt.figure(figsize=(256 / 80, 256 / 80))
+        figure(figsize=(256 / 80, 256 / 80))
         # plt.pcolormesh(times, frequencies[0:16], Zxx[i], shading='auto', cmap='jet')
         sns_plot = heatmap(power[i], cmap='jet', cbar=False)
         sns_plot.invert_yaxis()  # 反转Y轴坐标，即将最高值置于顶部，最低值置于底部
         buffer = BytesIO()
-        plt.axis('off')
-        plt.tight_layout(pad=0)
-        plt.savefig(buffer, format='png', dpi=80)
-        if save:
-            plt.savefig(adr_stft + f'STFT_{i}.png', dpi=80)
+        axis('off')
+        tight_layout(pad=0)
+        savefig(buffer, format='png', dpi=80)
         buffer.seek(0)
         # 从内存缓冲区读取数据 —> 将数据转换为字节数组 —> 转换为 NumPy 数组 —> 从这些字节数据中解码出图像
         im_data = imdecode(asarray(bytearray(buffer.read()), dtype=uint8), IMREAD_COLOR)  # (256,256,3)
         im_data_resized = resize(im_data, (112, 112))  # (112,112,3)
-        plt.close()
+        close()
         im_data = zuhe_transform(im_data_resized)  # (3,32,32)
-        im_data = im_data.numpy()  # (3,32,32)
+        # im_data = im_data.numpy()  # (3,32,32)
         stft_buffer[i] = im_data
-    stft_buffer = stft_buffer.transpose((1, 0, 2, 3))
-    stft_buffer = tensor(stft_buffer.astype('float32')).reshape(1, 3, 21, 32, 32)
+    # stft_buffer = stft_buffer.transpose((1, 0, 2, 3))
+    # stft_buffer = tensor(stft_buffer.astype('float32')).reshape(1, 3, 21, 32, 32)
+    stft_buffer = stft_buffer.permute(1, 0, 2, 3).unsqueeze(0)  # tensor (1,3,21,32,32)
+
     # 1
     # img = img.reshape(1, 1, 21, 32, 32)
     # 19

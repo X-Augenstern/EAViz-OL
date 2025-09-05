@@ -1,14 +1,6 @@
-from torch.nn import Module, AdaptiveAvgPool2d, Sigmoid, MaxPool3d, Sequential, ReLU, BatchNorm3d, Conv3d, \
-    AdaptiveAvgPool3d, Linear, init, ModuleList
 from torch.nn.modules.utils import _triple
-
-
-# from torchsummary import summary
-# from thop import profile
-
-
-# from torch.autograd import Variable
-# from torchsummary import summary
+from torch.nn import Sigmoid, Linear, ReLU, Sequential, Module, AdaptiveAvgPool2d, Conv3d, BatchNorm3d, ModuleList, \
+    MaxPool3d, AdaptiveAvgPool3d, init
 
 
 class SELayer(Module):
