@@ -122,50 +122,51 @@ class EAVizSettings:
     """
 
     class ModelConfig:
-        ESC_SD_model = ['', 'DSMN-ESS', 'R3DClassifier']
-        AD_model = ['', 'Resnet34_AE_BCELoss', 'Resnet34_SkipAE_BCELoss', 'Resnet34_MemAE_BCELoss',
+        ESC_SD_MODEL = ['DSMN-ESS', 'R3DClassifier']
+        AD_MODEL = ['Resnet34_AE_BCELoss', 'Resnet34_SkipAE_BCELoss', 'Resnet34_MemAE_BCELoss',
                     'Resnet34_VAE_BCELoss', 'SENet18_AE_BCELoss', 'SENet18_SkipAE_BCELoss',
                     'SENet18_MemAE_BCELoss', 'SENet18_VAE_BCELoss', 'VGG16_AE_BCELoss', 'VGG16_SkipAE_BCELoss',
                     'VGG16_MemAE_BCELoss', 'VGG16_VAE_BCELoss', 'DenseNet121_AE_BCELoss',
                     'DenseNet121_SkipAE_BCELoss', 'DenseNet121_MemAE_BCELoss', 'DenseNet121_VAE_BCELoss']
-        SpiD_model = ['', 'Template Matching', 'Unet+ResNet34']
-        SRD_model = ['', 'MKCNN']
-        VD_model = ['', 'yolov5l_3dResnet']
+        SpiD_MODEL = ['Template Matching', 'Unet+ResNet34']
+        SRD_MODEL = ['MKCNN']
+        VD_MODEL = ['yolov5l_3dResnet']
+        MODEL_NUM = len(ESC_SD_MODEL) + len(AD_MODEL) + len(SpiD_MODEL) + len(SRD_MODEL) + len(VD_MODEL)
 
-        ESC_SD_model_des = 'This model requires the <INPUT> .EDF FILE:\n' \
+        ESC_SD_MODEL_DES = 'This model requires the <INPUT> .EDF FILE:\n' \
                            'sfreq: 1000Hz\n' \
                            '21 channels, which can be selected in Select Signals Form per button ESC + SD (21 channels)\n' \
                            'preprocessing: None\n' \
                            'time span: 4s'
-        AD_model_des = 'This model requires the <INPUT> .EDF FILE:\n' \
+        AD_MODEL_DES = 'This model requires the <INPUT> .EDF FILE:\n' \
                        'sfreq: 1000Hz\n' \
                        '19 channels, which can be selected in Select Signals Form per button AD, SpiD (19 channels)\n' \
                        'preprocessing: None\n' \
                        'time span: 11s'
-        SpiD_model_des = 'This model requires the <INPUT> .EDF FILE:\n' \
+        SpiD_MODEL_DES = 'This model requires the <INPUT> .EDF FILE:\n' \
                          'sfreq: 500Hz\n' \
                          '19 channels, which can be selected in Select Signals Form per button AD, SpiD (19 channels)\n' \
                          'preprocessing: None\n' \
                          'time span: >=0.3s(Template) | multiple of 30s(Semantics)'
-        SRD_model_des = 'This model requires the <INPUT> .EDF FILE:\n' \
+        SRD_MODEL_DES = 'This model requires the <INPUT> .EDF FILE:\n' \
                         'sfreq: 1000Hz\n' \
                         'preprocessing: None\n' \
                         'time span: >=1s'
-        VD_model_des = 'This model requires the <INPUT> .MP4 FILE:\n' \
+        VD_MODEL_DES = 'This model requires the <INPUT> .MP4 FILE:\n' \
                        'frame per second: 20'
 
         @classmethod
         def get_des(cls, model):
-            if model in cls.ESC_SD_model:
-                return cls.ESC_SD_model_des
-            elif model in cls.AD_model:
-                return cls.AD_model_des
-            elif model in cls.SpiD_model:
-                return cls.SpiD_model_des
-            elif model in cls.SRD_model:
-                return cls.SRD_model_des
+            if model in cls.ESC_SD_MODEL:
+                return cls.ESC_SD_MODEL_DES
+            elif model in cls.AD_MODEL:
+                return cls.AD_MODEL_DES
+            elif model in cls.SpiD_MODEL:
+                return cls.SpiD_MODEL_DES
+            elif model in cls.SRD_MODEL:
+                return cls.SRD_MODEL_DES
             elif model == 'VD':
-                return cls.VD_model_des
+                return cls.VD_MODEL_DES
 
     class ChannelEnum(Enum):
         """
@@ -216,7 +217,6 @@ class EAVizSettings:
     class AddressConfig:
         BASE_ROOT = UploadSettings.DOWNLOAD_PATH
         BASE_CP_ROOT = 'eaviz'
-        CP_ITEM_NAME = ['ESC', 'SD', 'SRD', 'VD']
         FOLDER = {
             "ESC_SD/ESC": ["feature_map", "stft_feature", "res"],
             "ESC_SD/SD": ["feature_map", "stft_feature", "res"],
@@ -285,8 +285,20 @@ class EAVizSettings:
         def get_cp_adr(cls, name):
             base = path.join(cls.BASE_CP_ROOT)
             hashtable = {
-                'ESC': path.join(base, "ESC_SD", "ESC", "A3D-EEG_epoch-19.pth.tar"),
-                'SD': path.join(base, "ESC_SD", "SD", "0.15-EEG_epoch-19.pth.tar"),
+                'ESC_SD': {
+                    'DSMN-ESS': path.join(base, "ESC_SD", "SD", "0.15-EEG_epoch-19.pth.tar"),
+                    'R3DClassifier': path.join(base, "ESC_SD", "ESC", "A3D-EEG_epoch-19.pth.tar")
+                },
+                'AD': {
+                    'Resnet34': path.join(base, 'AD', 'resultResnet34BCELoss0', 'weights', 'save_9.pth'),
+                    'VGG16': path.join(base, 'AD', 'resultVGG16BCELoss5', 'weights', 'save_12.pth'),
+                    'SENet18': path.join(base, 'AD', 'resultSENet18BCELoss0', 'weights', 'save_85.pth'),
+                    'DenseNet121': path.join(base, 'AD', 'resultDenseNet121BCELoss0', 'weights', 'save_21.pth'),
+                    'AE': path.join(base, 'AD', 'result_ch10_1sAE_HDU1', 'weights', 'save_124.pth'),
+                    'SkipAE': path.join(base, 'AD', 'result_ch10_1sSkipAE_HDU1', 'weights', 'save_110.pth'),
+                    'MemAE': path.join(base, 'AD', 'result_ch10_1sMemAE_HDU0', 'weights', 'save_242.pth'),
+                    'VAE': path.join(base, 'AD', 'result_ch10_1sVAE_HDU3', 'weights', 'save_259.pth')
+                },
                 'SRD': path.join(base, "SRD", "model_weights.pth"),
                 'VD': {
                     'cp1': path.join(base, "VD", "yolov5l_best.pt"),

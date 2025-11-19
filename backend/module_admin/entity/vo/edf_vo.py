@@ -100,8 +100,6 @@ class EdfDataQueryModel(EdfRawQueryModel):
     """
     Edf数据查询模型
     """
-    model_config = ConfigDict(alias_generator=to_camel, from_attributes=True)
-
     start_time: int = None
     end_time: int = None
 
@@ -115,3 +113,12 @@ class EdfDataAnalyseGenericModel(BaseModel):
     edf_id: int
     method: str
     start_time: float
+
+
+class EdfDataAnalyseADModel(EdfDataAnalyseGenericModel):
+    """
+    Edf数据分析AD模型
+    """
+    start_time: int
+    fb_idx: int
+    arti_list: list

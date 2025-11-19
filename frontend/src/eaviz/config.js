@@ -19,17 +19,17 @@ export const eavizItems = [
     // logoTxt: "E",
     href: "/eaviz/escsd",
     memberLink: "",
-    methods:[
+    methods: [
       {
-        name:'DSMN-ESS',
-        description:"This method not only categorizes epilepsy syndromes but also allows for seizure detection"
+        name: 'DSMN-ESS',
+        description: "This method not only categorizes epilepsy syndromes but also allows for seizure detection"
       },
       {
-        name:'R3DClassifier',
-        description:"This method can only categorize epilepsy syndromes"
+        name: 'R3DClassifier',
+        description: "This method can only categorize epilepsy syndromes"
       }
     ],
-    span:4
+    span: 4
   },
   {
     id: "02",
@@ -39,6 +39,27 @@ export const eavizItems = [
     // logoTxt: "A",
     href: "/eaviz/ad",
     memberLink: "",
+    // AD 支持的模型（需与后端 EAVizConfig.ModelConfig.AD_MODEL 保持一致）
+    methods: [
+      { name: 'Resnet34_AE_BCELoss', description: 'ResNet34 + AE, Binary Cross Entropy Loss' },
+      { name: 'Resnet34_SkipAE_BCELoss', description: 'ResNet34 + SkipAE, Binary Cross Entropy Loss' },
+      { name: 'Resnet34_MemAE_BCELoss', description: 'ResNet34 + MemAE, Binary Cross Entropy Loss' },
+      { name: 'Resnet34_VAE_BCELoss', description: 'ResNet34 + VAE, Binary Cross Entropy Loss' },
+      { name: 'SENet18_AE_BCELoss', description: 'SENet18 + AE, Binary Cross Entropy Loss' },
+      { name: 'SENet18_SkipAE_BCELoss', description: 'SENet18 + SkipAE, Binary Cross Entropy Loss' },
+      { name: 'SENet18_MemAE_BCELoss', description: 'SENet18 + MemAE, Binary Cross Entropy Loss' },
+      { name: 'SENet18_VAE_BCELoss', description: 'SENet18 + VAE, Binary Cross Entropy Loss' },
+      { name: 'VGG16_AE_BCELoss', description: 'VGG16 + AE, Binary Cross Entropy Loss' },
+      { name: 'VGG16_SkipAE_BCELoss', description: 'VGG16 + SkipAE, Binary Cross Entropy Loss' },
+      { name: 'VGG16_MemAE_BCELoss', description: 'VGG16 + MemAE, Binary Cross Entropy Loss' },
+      { name: 'VGG16_VAE_BCELoss', description: 'VGG16 + VAE, Binary Cross Entropy Loss' },
+      { name: 'DenseNet121_AE_BCELoss', description: 'DenseNet121 + AE, Binary Cross Entropy Loss' },
+      { name: 'DenseNet121_SkipAE_BCELoss', description: 'DenseNet121 + SkipAE, Binary Cross Entropy Loss' },
+      { name: 'DenseNet121_MemAE_BCELoss', description: 'DenseNet121 + MemAE, Binary Cross Entropy Loss' },
+      { name: 'DenseNet121_VAE_BCELoss', description: 'DenseNet121 + VAE, Binary Cross Entropy Loss' },
+    ],
+    // AD 模型要求时间窗长度为 11s（见后端 AD_MODEL_DES）
+    span: 11,
   },
   {
     id: "03",

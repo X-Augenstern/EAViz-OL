@@ -5,5 +5,16 @@
 /.env.prod
 /docs/dev-ops-eaviz/redis
 
+# SpiD temp files ** 表示匹配任意数量的目录层级，因此可以忽略任意路径中的 mat、npz 文件夹
+**/mat/
+**/npz/
+
 # Checkpoint stuff
+# ESC_SD
 *.tar
+# AD VD SRD SpiD
+*.pth
+# VD
+*.pt
+
+*.log

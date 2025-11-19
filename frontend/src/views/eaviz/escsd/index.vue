@@ -1,10 +1,10 @@
 <template>
   <div class="app-container">
-    <el-steps :active="0" direction="vertical" align-center>
+    <el-steps :active="activeStep" direction="vertical" align-center>
       <el-step title="请选择用于分析的EDF">
         <template #description>
           <el-text type="primary" tag="b" size="large" class="title_style">
-            当前可用于分析的EDF
+            当前可用于 ESC SD 分析的 EDF（21 通道、1000 Hz）
           </el-text>
           <el-table
             v-loading="loading"
@@ -96,7 +96,11 @@
               :name="obj.name"
             >
               <template #title>
-                <el-radio-group v-model="analyseParam.method" size="large">
+                <el-radio-group
+                  v-model="analyseParam.method"
+                  size="large"
+                  :disabled="stepDisabled.step2"
+                >
                   <!-- 使用 @click.stop 阻止点击事件冒泡 -->
                   <el-radio-button :label="obj.name" @click.stop />
                 </el-radio-group>
@@ -134,6 +138,7 @@
                   :max="idx === 0 ? maxTime - span : maxTime"
                   :precision="2"
                   controls-position="right"
+                  :disabled="stepDisabled.step3"
                   @input="handleInputNumber(idx, $event)"
                 ></el-input-number>
               </div>
@@ -147,6 +152,7 @@
           <el-button
             type="primary"
             style="margin-bottom: 5px"
+            :disabled="stepDisabled.step4"
             @click="handleAnalyse"
             >开始分析
           </el-button>
@@ -232,6 +238,7 @@ import {
   onMounted,
   onBeforeUnmount,
   nextTick,
+  computed,
 } from "vue";
 import { eavizItemsIdx, eavizItems } from "../../../eaviz/config";
 import { useEDFStore } from "../../../store/modules/edf";
@@ -247,6 +254,28 @@ const span = eavizItems[itemIdx].span;
 const selectedTime = ref([0, span]);
 const percentage = ref(0);
 const resultImages = ref([]); // 分析结果图片
+const selectedTimeValid = computed(() => {
+  const [start, end] = selectedTime.value;
+  return (
+    typeof start === "number" &&
+    typeof end === "number" &&
+    !Number.isNaN(start) &&
+    !Number.isNaN(end) &&
+    end > start
+  );
+});
+const activeStep = computed(() => {
+  if (!analyseParam.edfId) return 0;
+  if (!analyseParam.method) return 1;
+  if (!selectedTimeValid.value) return 2;
+  return 3;
+});
+const stepDisabled = computed(() => ({
+  step2: !analyseParam.edfId,
+  step3: !analyseParam.edfId || !analyseParam.method,
+  step4:
+    !analyseParam.edfId || !analyseParam.method || !selectedTimeValid.value,
+}));
 
 watch(
   () => selectedTime.value[0],
@@ -301,6 +330,7 @@ const handleInputNumber = (idx, value) => {
 
 // 开始分析
 const handleAnalyse = () => {
+  if (stepDisabled.value.step4) return;
   loading.value = true;
   percentage.value = 10;
   // 组装参数，包含起止时间与方法

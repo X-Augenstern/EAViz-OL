@@ -1,6 +1,7 @@
 from torch import tensor
 from eaviz.ESC_SD.offline_process import *
 from eaviz.ESC_SD.plot_result import plot_sd_res, plot_esc_res
+from utils.edf_util import EdfUtil
 
 
 class ESCSD:
@@ -14,8 +15,7 @@ class ESCSD:
         raw, pre_margin = crop_tactic(raw, start_time, 4)
 
         # 预处理
-        raw = raw.notch_filter(freqs=50)
-        raw = raw.filter(l_freq=1, h_freq=70)
+        raw = EdfUtil.normal_filter(raw)
 
         # 切片2
         raw = raw.crop(pre_margin, pre_margin + 4 - 1 / raw.info['sfreq'])

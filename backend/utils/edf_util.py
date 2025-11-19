@@ -60,7 +60,7 @@ class EdfUtil:
         try:
             if not selected_channels:
                 # 列表是通过引用传递的，当后面修改 selected_channels 的内容时，实际上修改的是 EAVizConfig.channels_21
-                selected_channels = EAVizConfig.channels_21.copy()
+                selected_channels = EAVizConfig.ChannelEnum.CH21.value.copy()
             else:
                 selected_channels = selected_channels.split(',')
 
