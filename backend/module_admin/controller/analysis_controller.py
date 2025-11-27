@@ -11,6 +11,7 @@ from utils.log_util import *
 from utils.response_util import ResponseUtil
 from eaviz.ESC_SD.escsd import ESCSD
 from eaviz.AD.ad import AD
+from eaviz.SpiD.spid import SPID
 
 analysisController = APIRouter(prefix='/eaviz', dependencies=[Depends(LoginService.get_current_user)])
 
@@ -39,8 +40,8 @@ async def analyse_escsd_by_edf_id(request: Request,
 
         model = request.app.state.models.get(model_name)  # todo 与model处协调一下
         if not model:
-            logger.error(f"对应的预训练模型未加载: {edf_data_analyse.method}")
-            return ResponseUtil.error(msg=f"预训练模型未加载: {edf_data_analyse.method}")
+            logger.error(f"对应的预训练模型未加载: {model_name}")
+            return ResponseUtil.error(msg=f"预训练模型未加载: {model_name}")
 
         fm_abs = None
         stft_abs = None
@@ -121,6 +122,61 @@ async def analyse_ad_by_edf_id(request: Request,
         image_urls = [u for u in image_urls if u]
 
         return ResponseUtil.success(data={
+            "images": image_urls,
+            "message": "分析完成"
+        })
+    except Exception as e:
+        logger.exception(e)
+        return ResponseUtil.error(msg=str(e))
+
+
+@analysisController.post("/spid", dependencies=[Depends(CheckUserInterfaceAuth("eaviz:spid:analyse"))])
+@log_decorator(title="EDF分析", business_type=11)
+async def analyse_spid_by_edf_id(request: Request,
+                               edf_data_analyse: EdfDataAnalyseSpiDModel,
+                               query_db: Session = Depends(get_db),
+                               current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
+    try:
+        edf_raw_query = EdfRawQueryModel(edfId=edf_data_analyse.edf_id,
+                                         selectedChannels=','.join(EAVizConfig.ChannelEnum.CH19.value))
+        edf_raw_query_result = EdfService.get_edf_raw_by_id_services(query_db, edf_raw_query)
+        if not edf_raw_query_result.is_success:  # 检查是否获取成功
+            return ResponseUtil.error(msg=edf_raw_query_result.message)
+
+        logger.info(edf_raw_query_result.message)
+        raw = edf_raw_query_result.result
+        if raw.info['nchan'] != 19:  # 检查通道数量
+            return ResponseUtil.error(msg='通道数不是 19，无法进行 SpiD 分析')
+
+        model_name = edf_data_analyse.method
+        if model_name not in EAVizConfig.ModelConfig.SpiD_MODEL:
+            return ResponseUtil.error(msg='模型选择有误')
+
+        swi = None
+        res_abs = None
+        if model_name == "Template Matching":
+            swi = SPID.tm(raw, edf_data_analyse.start_time, edf_data_analyse.stop_time)
+            res_abs = EAVizConfig.AddressConfig.get_spid_adr('res')
+        elif model_name == "Unet+ResNet34":
+            model = request.app.state.models.get(model_name)  # todo 与model处协调一下
+            if not model:
+                logger.error(f"对应的预训练模型未加载: {model_name}")
+                return ResponseUtil.error(msg=f"预训练模型未加载: {model_name}")
+
+            swi = SPID.ss(raw, model, edf_data_analyse.start_time, edf_data_analyse.stop_time)
+            res_abs = EAVizConfig.AddressConfig.get_spid_adr('res')
+
+        # 把目录下的结果图转成 URL（StaticFiles 访问路径）
+        # app.mount 只是告诉 FastAPI：URL 前缀 ↔ 硬盘目录 的映射关系。
+        # 后端代码里拿到的是 硬盘路径，必须转换成 URL 才能返回给前端。
+        image_urls = [
+            make_static_url(request, res_abs)
+        ]
+        # 过滤掉没转换成功的
+        image_urls = [u for u in image_urls if u]
+
+        return ResponseUtil.success(data={
+            "swi": swi,
             "images": image_urls,
             "message": "分析完成"
         })

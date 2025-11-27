@@ -131,7 +131,7 @@ class EAVizSettings:
         SpiD_MODEL = ['Template Matching', 'Unet+ResNet34']
         SRD_MODEL = ['MKCNN']
         VD_MODEL = ['yolov5l_3dResnet']
-        MODEL_NUM = len(ESC_SD_MODEL) + len(AD_MODEL) + len(SpiD_MODEL) + len(SRD_MODEL) + len(VD_MODEL)
+        MODEL_NUM = len(ESC_SD_MODEL) + len(AD_MODEL) + len(SpiD_MODEL) - 1 + len(SRD_MODEL) + len(VD_MODEL)
 
         ESC_SD_MODEL_DES = 'This model requires the <INPUT> .EDF FILE:\n' \
                            'sfreq: 1000Hz\n' \
@@ -272,12 +272,14 @@ class EAVizSettings:
         @classmethod
         def get_spid_adr(cls, name):
             base = path.join(cls.BASE_ROOT, "SpiD")
+            base_cp_root = path.join(cls.BASE_CP_ROOT, "SpiD")
             hashtable = {
                 'idx': path.join(base, "index", "idx_light.html"),
                 'fam': path.join(base, "family", "fam_light.png"),
                 'res': path.join(base, "res", "res.png"),
-                'mat': path.join(base, "mat"),
-                'npz': path.join(base, "npz")
+                'mat': path.join(base_cp_root, "mat"),
+                'npz': path.join(base_cp_root, "npz"),
+                'tem': path.join(base_cp_root, 'liangC3_ave.fif')
             }
             return path.abspath(hashtable.get(name, ''))
 
@@ -299,10 +301,13 @@ class EAVizSettings:
                     'MemAE': path.join(base, 'AD', 'result_ch10_1sMemAE_HDU0', 'weights', 'save_242.pth'),
                     'VAE': path.join(base, 'AD', 'result_ch10_1sVAE_HDU3', 'weights', 'save_259.pth')
                 },
+                'SpiD': {
+                    "Unet+ResNet34": path.join(base, 'SpiD', 'save_48.pth')
+                },
                 'SRD': path.join(base, "SRD", "model_weights.pth"),
                 'VD': {
-                    'cp1': path.join(base, "VD", "yolov5l_best.pt"),
-                    'cp2': path.join(base, "VD", "3d_Resnet_best.pth")
+                    'yolov5l': path.join(base, "VD", "yolov5l_best.pt"),
+                    '3dResnet': path.join(base, "VD", "3d_Resnet_best.pth")
                 }
             }
             value = hashtable.get(name, '')

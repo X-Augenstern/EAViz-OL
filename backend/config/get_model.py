@@ -12,6 +12,7 @@ from eaviz.AD.model.googlenet import GoogLeNet
 from eaviz.AD.model.senet import SENet18
 from eaviz.AD.model.vgg import VGG16
 from eaviz.AD.AE_Combine import AutoEncoder, SkipAutoEncoder, MemAutoEncoder, EstimatorAutoEncoder, Resnet_Encoder, VAE
+from eaviz.SpiD.Unet34 import Unet34
 
 
 class ModelUtil:
@@ -123,6 +124,26 @@ class ModelUtil:
             return None
 
     @classmethod
+    async def _init_spid(cls, model_dict):
+        def _prepare_model(test_weight):
+            model = Unet34(n_channels=1, SA=True)  # 带SA channel=1 all in：19  注意SA
+            state_dict = load(test_weight)['state_dict']
+            model.load_state_dict(state_dict)
+            return model.float().cuda().eval()
+
+        try:
+            logger.info(EAVizConfig.AddressConfig.get_cp_adr('SpiD'))
+            address_dict = EAVizConfig.AddressConfig.get_cp_adr('SpiD')
+            for k, v in address_dict.items():
+                if k == 'Unet+ResNet34':
+                    model = _prepare_model(v)
+                    if model is not None:
+                        model_dict[k] = model
+        except ModelLoadingException as e:
+            logger.error(f"SpiD 的预训练模型初始化失败: {e}")
+            return None
+
+    @classmethod
     async def init_models(cls, item_name=None):
         """
         :param item_name: None初始化全部预训练模型，否则只初始化对应的模型
@@ -134,6 +155,7 @@ class ModelUtil:
             logger.info(f"开始初始化 {item_name} 的预训练模型...")
         await cls._init_esc_sd(model_dict)
         await cls._init_ad(model_dict)
+        await cls._init_spid(model_dict)
         if len(model_dict.keys()) == EAVizConfig.ModelConfig.MODEL_NUM:
             logger.info("所有预训练模型初始化成功")
         else:

@@ -8,3 +8,9 @@ export const adAnalyse = (query) =>
   request.post('/eaviz/ad', query, {
     timeout: 5 * 60 * 1000, // AD 请求可能需要较长时间
   });
+
+// SpiD
+export const spidAnalyse = (query) =>
+  request.post('/eaviz/spid', query, {
+    timeout: 5 * 60 * 1000,
+  });

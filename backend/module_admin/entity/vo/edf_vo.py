@@ -122,3 +122,10 @@ class EdfDataAnalyseADModel(EdfDataAnalyseGenericModel):
     start_time: int
     fb_idx: int
     arti_list: list
+
+
+class EdfDataAnalyseSpiDModel(EdfDataAnalyseGenericModel):
+    """
+    Edf数据分析SpiD模型
+    """
+    stop_time: float

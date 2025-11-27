@@ -69,6 +69,18 @@ export const eavizItems = [
     // logoTxt: "S",
     href: "/eaviz/spid",
     memberLink: "",
+    methods: [
+      {
+        name: "Template Matching",
+        description:
+          "Sliding window template matching, time period can be arbitrarily selected, but the duration must be at least 0.3 s",
+      },
+      {
+        name: "Unet+ResNet34",
+        description:
+          "Deep learning model, select start time and specify N segments of 30 seconds, total duration = N × 30 s",
+      },
+    ],
   },
   {
     id: "04",
