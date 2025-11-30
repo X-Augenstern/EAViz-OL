@@ -189,9 +189,12 @@ async def analyse_spid_by_edf_id(request: Request,
 @analysisController.post("/srd", dependencies=[Depends(CheckUserInterfaceAuth("eaviz:srd:analyse"))])
 @log_decorator(title="EDF分析", business_type=11)
 async def analyse_srd_by_edf_id(request: Request,
-                                edf_data_analyse: EdfDataAnalyseSRDModel,
-                                query_db: Session = Depends(get_db),
-                                current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
+                               edf_data_analyse: EdfDataAnalyseSRDModel,
+                               query_db: Session = Depends(get_db),
+                               current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
+    """
+    流式输出 SRD 分析数据
+    """
     try:
         edf_raw_query = EdfRawQueryModel(edfId=edf_data_analyse.edf_id)
         edf_raw_query_result = EdfService.get_edf_raw_by_id_services(query_db, edf_raw_query)
@@ -210,11 +213,15 @@ async def analyse_srd_by_edf_id(request: Request,
             logger.error(f"对应的预训练模型未加载: {model_name}")
             return ResponseUtil.error(msg=f"预训练模型未加载: {model_name}")
 
-        SRD.srd(raw, model, edf_data_analyse.start_time, edf_data_analyse.stop_time, edf_data_analyse.ch_idx)
-
-        return ResponseUtil.success(data={
-            "message": "分析完成"
-        })
+        # 生成流式数据
+        stream_generator = SRD.stream_srd_data(
+            raw, model,
+            edf_data_analyse.start_time,
+            edf_data_analyse.stop_time,
+            edf_data_analyse.ch_idx,
+            ResponseUtil.STREAM_WINDOW_SIZE
+        )
+        return ResponseUtil.streaming(data=stream_generator)
     except Exception as e:
         logger.exception(e)
         return ResponseUtil.error(msg=str(e))

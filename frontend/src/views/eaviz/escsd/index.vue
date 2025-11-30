@@ -4,7 +4,7 @@
       <el-step title="请选择用于分析的EDF">
         <template #description>
           <el-text type="primary" tag="b" size="large" class="title_style">
-            当前可用于 ESC SD 分析的 EDF（21 通道、1000 Hz）
+            当前可用于 ESC SD 分析的 EDF（21通道、1000Hz）
           </el-text>
           <el-table
             v-loading="loading"
@@ -254,6 +254,7 @@ const span = eavizItems[itemIdx].span;
 const selectedTime = ref([0, span]);
 const percentage = ref(0);
 const resultImages = ref([]); // 分析结果图片
+const analysisCompleted = ref(false); // 分析是否完成
 const selectedTimeValid = computed(() => {
   const [start, end] = selectedTime.value;
   return (
@@ -265,6 +266,7 @@ const selectedTimeValid = computed(() => {
   );
 });
 const activeStep = computed(() => {
+  if (analysisCompleted.value) return 4;
   if (!analyseParam.edfId) return 0;
   if (!analyseParam.method) return 1;
   if (!selectedTimeValid.value) return 2;
@@ -314,13 +316,8 @@ const analyseParam = reactive({
 /** 单选项发生变化  */
 const handleCurrentChange = (current) => {
   analyseParam.edfId = current.edfId;
+  analysisCompleted.value = false; // 重置分析完成状态
 };
-
-/** 自动调整滑块的结束时间 */
-// const handleSliderInput = (newValue) => {
-//   if (newValue[1] - newValue[0] !== 4)
-//     selectedTime.value = [newValue[0], newValue[0] + 4];
-// };
 
 /** 自动调整另一端的值 */
 const handleInputNumber = (idx, value) => {
@@ -363,12 +360,14 @@ const handleAnalyse = () => {
 
       percentage.value = 100;
       loading.value = false;
+      analysisCompleted.value = true; // 标记分析完成
     })
     .catch((error) => {
       console.error("分析失败:", error);
       resultImages.value = [];
       percentage.value = 0;
       loading.value = false;
+      analysisCompleted.value = false;
     });
 };
 

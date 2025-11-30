@@ -5,7 +5,7 @@
       <el-step title="请选择用于分析的EDF">
         <template #description>
           <el-text type="primary" tag="b" size="large" class="title_style">
-            当前可用于 AD 分析的 EDF（19 通道、1000 Hz）
+            当前可用于 AD 分析的 EDF（19通道、1000Hz）
           </el-text>
           <el-table
             v-loading="loading"
@@ -315,6 +315,7 @@ const selectedTimeValid = computed(() => {
 });
 const percentage = ref(0);
 const resultImages = ref([]); // 分析结果图片
+const analysisCompleted = ref(false); // 分析是否完成
 
 // PSDEnum.FREQ_BANDS & FREQ_LABELS（与后端配置保持一致）
 const freqBands = ref([
@@ -390,6 +391,7 @@ const stepCompletion = computed(() => {
     analyseParam.fbIdx !== null;
   const step4Done = step3Done && selectedArtifacts.value.length > 0;
   const step5Done = step4Done && selectedTimeValid.value;
+  const step6Done = analysisCompleted.value;
 
   let currentStep = 5;
   if (!step1Done) currentStep = 0;
@@ -397,6 +399,7 @@ const stepCompletion = computed(() => {
   else if (!step3Done) currentStep = 2;
   else if (!step4Done) currentStep = 3;
   else if (!step5Done) currentStep = 4;
+  else if (step6Done) currentStep = 6;
 
   return {
     step1Done,
@@ -404,6 +407,7 @@ const stepCompletion = computed(() => {
     step3Done,
     step4Done,
     step5Done,
+    step6Done,
     currentStep,
   };
 });
@@ -421,6 +425,7 @@ const stepDisabled = computed(() => ({
 /** 单选 EDF 变化 */
 const handleCurrentChange = (current) => {
   analyseParam.edfId = current?.edfId;
+  analysisCompleted.value = false; // 重置分析完成状态
 };
 
 /** 自动调整另一端的值（保证时长 = span） */
@@ -455,6 +460,7 @@ const handleAnalyse = () => {
 
   loading.value = true;
   percentage.value = 10;
+  analysisCompleted.value = false; // 重置分析完成状态，开始新的分析
 
   // 组装参数
   const payload = {
@@ -484,12 +490,14 @@ const handleAnalyse = () => {
 
       percentage.value = 100;
       loading.value = false;
+      analysisCompleted.value = true; // 标记分析完成
     })
     .catch((error) => {
       console.error("AD 分析失败:", error);
       resultImages.value = [];
       percentage.value = 0;
       loading.value = false;
+      analysisCompleted.value = false;
     });
 };
 

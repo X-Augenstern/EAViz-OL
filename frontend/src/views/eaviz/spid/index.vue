@@ -5,13 +5,13 @@
       <el-step title="请选择用于分析的EDF">
         <template #description>
           <el-text type="primary" tag="b" size="large" class="title_style">
-            当前可用于 SpiD 分析的 EDF（19 通道、1000 Hz）
+            当前可用于 SpiD 分析的 EDF（19通道、500Hz）
           </el-text>
           <el-table
             v-loading="loading"
             :data="
               EDFStore.edfListWithCount.filter(
-                (edf) => edf.validChannelsCount == 19 && edf.edfSfreq == 1000
+                (edf) => edf.validChannelsCount == 19 && edf.edfSfreq == 500
               )
             "
             highlight-current-row
@@ -343,6 +343,7 @@ const maxTime = ref(1000);
 const percentage = ref(0);
 const resultImages = ref([]); // 分析结果图片
 const swiResult = ref(null); // Swi 数值结果
+const analysisCompleted = ref(false); // 分析是否完成
 
 // 时间参数
 const timeParams = reactive({
@@ -414,6 +415,7 @@ const timeParamsValid = computed(() => {
 
 // 计算当前步骤（用于流程图高亮）
 const activeStep = computed(() => {
+  if (analysisCompleted.value) return 4;
   if (!analyseParam.edfId) return 0;
   if (!analyseParam.method) return 1;
   if (!timeParamsValid.value) return 2;
@@ -430,9 +432,10 @@ const stepDisabled = computed(() => ({
 watch(
   () => analyseParam.method,
   (newMethod) => {
+    analysisCompleted.value = false; // 重置分析完成状态
     if (newMethod === "Template Matching") {
       timeParams.startTime = 0;
-      timeParams.stopTime = 0.3;
+      timeParams.stopTime = Math.min(30, maxTime.value); // 结束时间设置为30秒和最大时间的最小值
     } else if (newMethod === "Unet+ResNet34") {
       timeParams.startTime = 0;
       timeParams.segmentCount = 1;
@@ -477,9 +480,14 @@ watch(
 /** 单选 EDF 变化 */
 const handleCurrentChange = (current) => {
   analyseParam.edfId = current?.edfId;
+  analysisCompleted.value = false; // 重置分析完成状态
   // 可以根据 EDF 的时长更新 maxTime
   if (current?.edfTime) {
     maxTime.value = current.edfTime;
+    // 如果当前选择的是 Template Matching 方法，更新结束时间为30秒和最大时间的最小值
+    if (analyseParam.method === "Template Matching") {
+      timeParams.stopTime = Math.min(30, maxTime.value);
+    }
   }
 };
 
@@ -535,12 +543,14 @@ const handleAnalyse = () => {
 
       percentage.value = 100;
       loading.value = false;
+      analysisCompleted.value = true; // 标记分析完成
     })
     .catch((error) => {
       console.error("SpiD 分析失败:", error);
       resultImages.value = [];
       percentage.value = 0;
       loading.value = false;
+      analysisCompleted.value = false;
     });
 };
 

@@ -11,6 +11,8 @@ class ResponseUtil:
     响应工具类
     """
 
+    STREAM_WINDOW_SIZE = 30  # 秒
+
     @classmethod
     def success(cls, msg: str = '操作成功', data: Optional[Any] = None, rows: Optional[Any] = None,
                 dict_content: Optional[Dict] = None, model_content: Optional[BaseModel] = None) -> Response:
