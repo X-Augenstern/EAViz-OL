@@ -2,7 +2,7 @@ from config.env import EAVizConfig
 from asyncio import to_thread
 from utils.log_util import logger
 from exceptions.exception import ModelLoadingException
-from torch import load, device, cuda
+from torch import load, device, cuda, empty, float as t_float
 from eaviz.ESC_SD.ESC.A3D_model import R3DClassifier
 from eaviz.ESC_SD.SD.two_feature_model import Classifier1D_2D_3D
 from eaviz.AD.model.Loss import classLoss  # 引入损失的类函数
@@ -14,6 +14,8 @@ from eaviz.AD.model.vgg import VGG16
 from eaviz.AD.AE_Combine import AutoEncoder, SkipAutoEncoder, MemAutoEncoder, EstimatorAutoEncoder, Resnet_Encoder, VAE
 from eaviz.SpiD.Unet34 import Unet34
 from eaviz.SRD.Excellent import Celestial
+from eaviz.VD.Load_model import DetectModule, RecognitionModule
+from eaviz.VD.config import Config
 
 
 class ModelUtil:
@@ -168,6 +170,35 @@ class ModelUtil:
             return None
 
     @classmethod
+    async def _init_vd(cls, model_dict, cfg):
+        def _prepare_detect_model(test_weight):
+            model = DetectModule(test_weight, device=cfg.device, fp16=cfg.half)
+            img_detection = empty(*cfg.warmshape_for_object_detection, dtype=t_float, device=cfg.device)
+            model.forward(img_detection)
+            return model
+
+        def _prepare_action_model(test_weight):
+            model = RecognitionModule(test_weight, device=cfg.device)
+            img_action = empty(*cfg.warmshape_for_action_recognition, dtype=t_float, device=cfg.device)
+            model.forward(img_action)
+            return model
+
+        try:
+            model = None
+            logger.info(EAVizConfig.AddressConfig.get_cp_adr('VD'))
+            address_dict = EAVizConfig.AddressConfig.get_cp_adr('VD')
+            for k, v in address_dict.items():
+                if k == 'YOLOv5l':
+                    model = _prepare_detect_model(v)
+                elif k == '3DResNet':
+                    model = _prepare_action_model(v)
+                if model is not None:
+                    model_dict[k] = model
+        except ModelLoadingException as e:
+            logger.error(f"VD 的预训练模型初始化失败: {e}")
+            return None
+
+    @classmethod
     async def init_models(cls, item_name=None):
         """
         :param item_name: None初始化全部预训练模型，否则只初始化对应的模型
@@ -181,6 +212,7 @@ class ModelUtil:
         await cls._init_ad(model_dict)
         await cls._init_spid(model_dict)
         await cls._init_srd(model_dict)
+        await cls._init_vd(model_dict, Config)
         if len(model_dict.keys()) == EAVizConfig.ModelConfig.MODEL_NUM:
             logger.info("所有预训练模型初始化成功")
         else:

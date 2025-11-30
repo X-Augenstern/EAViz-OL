@@ -131,7 +131,8 @@ class EAVizSettings:
         SpiD_MODEL = ['Template Matching', 'Unet+ResNet34']
         SRD_MODEL = ['MKCNN']
         VD_MODEL = ['yolov5l_3dResnet']
-        MODEL_NUM = len(ESC_SD_MODEL) + len(AD_MODEL) / 2 + len(SpiD_MODEL) - 1 + len(SRD_MODEL)
+        MODEL_NUM = len(ESC_SD_MODEL) + len(AD_MODEL) / 2 + len(SpiD_MODEL) - 1 + len(SRD_MODEL) + len(
+            VD_MODEL) * 2  # 14
 
         ESC_SD_MODEL_DES = 'This model requires the <INPUT> .EDF FILE:\n' \
                            'sfreq: 1000Hz\n' \
@@ -308,8 +309,8 @@ class EAVizSettings:
                     "MKCNN": path.join(base, "SRD", "model_weights.pth")
                 },
                 'VD': {
-                    'YOLOv5l': path.join(base, "VD", "yolov5l_best.pt"),
-                    '3DResNet': path.join(base, "VD", "3d_Resnet_best.pth")
+                    'YOLOv5l': path.join(base, "VD", "weights", "yolov5l_best.pt"),
+                    '3DResNet': path.join(base, "VD", "weights", "3d_Resnet_best.pth")
                 }
             }
             value = hashtable.get(name, '')
