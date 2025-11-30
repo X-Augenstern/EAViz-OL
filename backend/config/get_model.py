@@ -2,7 +2,7 @@ from config.env import EAVizConfig
 from asyncio import to_thread
 from utils.log_util import logger
 from exceptions.exception import ModelLoadingException
-from torch import load
+from torch import load, device, cuda
 from eaviz.ESC_SD.ESC.A3D_model import R3DClassifier
 from eaviz.ESC_SD.SD.two_feature_model import Classifier1D_2D_3D
 from eaviz.AD.model.Loss import classLoss  # 引入损失的类函数
@@ -13,6 +13,7 @@ from eaviz.AD.model.senet import SENet18
 from eaviz.AD.model.vgg import VGG16
 from eaviz.AD.AE_Combine import AutoEncoder, SkipAutoEncoder, MemAutoEncoder, EstimatorAutoEncoder, Resnet_Encoder, VAE
 from eaviz.SpiD.Unet34 import Unet34
+from eaviz.SRD.Excellent import Celestial
 
 
 class ModelUtil:
@@ -144,6 +145,29 @@ class ModelUtil:
             return None
 
     @classmethod
+    async def _init_srd(cls, model_dict):
+        def _prepare_model(test_weight):
+            use_device = device("cuda" if cuda.is_available() else "cpu")
+            model = Celestial()
+            model_weights = load(test_weight, map_location=use_device)
+            # 先把模型转移到正确的设备然后加载状态字典
+            model.to(use_device).load_state_dict(model_weights)
+            model.eval()
+            return model
+
+        try:
+            logger.info(EAVizConfig.AddressConfig.get_cp_adr('SRD'))
+            address_dict = EAVizConfig.AddressConfig.get_cp_adr('SRD')
+            for k, v in address_dict.items():
+                if k == 'MKCNN':
+                    model = _prepare_model(v)
+                    if model is not None:
+                        model_dict[k] = model
+        except ModelLoadingException as e:
+            logger.error(f"SpiD 的预训练模型初始化失败: {e}")
+            return None
+
+    @classmethod
     async def init_models(cls, item_name=None):
         """
         :param item_name: None初始化全部预训练模型，否则只初始化对应的模型
@@ -156,6 +180,7 @@ class ModelUtil:
         await cls._init_esc_sd(model_dict)
         await cls._init_ad(model_dict)
         await cls._init_spid(model_dict)
+        await cls._init_srd(model_dict)
         if len(model_dict.keys()) == EAVizConfig.ModelConfig.MODEL_NUM:
             logger.info("所有预训练模型初始化成功")
         else:

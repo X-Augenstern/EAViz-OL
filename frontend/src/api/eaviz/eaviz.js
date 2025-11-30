@@ -14,3 +14,9 @@ export const spidAnalyse = (query) =>
   request.post('/eaviz/spid', query, {
     timeout: 5 * 60 * 1000,
   });
+
+// SRD
+export const srdAnalyse = (query) =>
+  request.post('/eaviz/srd', query, {
+    timeout: 5 * 60 * 1000,
+  });

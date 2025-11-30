@@ -90,6 +90,12 @@ export const eavizItems = [
     // logoTxt: "H",
     href: "/eaviz/srd",
     memberLink: "",
+    methods: [
+      {
+        name: "MKCNN",
+        description: "Multi-Kernel Convolutional Neural Network for High-Frequency Oscillation detection",
+      },
+    ],
   },
   {
     id: "05",

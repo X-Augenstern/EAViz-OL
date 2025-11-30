@@ -129,3 +129,11 @@ class EdfDataAnalyseSpiDModel(EdfDataAnalyseGenericModel):
     Edf数据分析SpiD模型
     """
     stop_time: float
+
+
+class EdfDataAnalyseSRDModel(EdfDataAnalyseGenericModel):
+    """
+    Edf数据分析SRD模型
+    """
+    stop_time: float
+    ch_idx: int

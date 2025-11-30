@@ -12,6 +12,7 @@ from utils.response_util import ResponseUtil
 from eaviz.ESC_SD.escsd import ESCSD
 from eaviz.AD.ad import AD
 from eaviz.SpiD.spid import SPID
+from eaviz.SRD.srd import SRD
 
 analysisController = APIRouter(prefix='/eaviz', dependencies=[Depends(LoginService.get_current_user)])
 
@@ -133,9 +134,9 @@ async def analyse_ad_by_edf_id(request: Request,
 @analysisController.post("/spid", dependencies=[Depends(CheckUserInterfaceAuth("eaviz:spid:analyse"))])
 @log_decorator(title="EDF分析", business_type=11)
 async def analyse_spid_by_edf_id(request: Request,
-                               edf_data_analyse: EdfDataAnalyseSpiDModel,
-                               query_db: Session = Depends(get_db),
-                               current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
+                                 edf_data_analyse: EdfDataAnalyseSpiDModel,
+                                 query_db: Session = Depends(get_db),
+                                 current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
     try:
         edf_raw_query = EdfRawQueryModel(edfId=edf_data_analyse.edf_id,
                                          selectedChannels=','.join(EAVizConfig.ChannelEnum.CH19.value))
@@ -178,6 +179,40 @@ async def analyse_spid_by_edf_id(request: Request,
         return ResponseUtil.success(data={
             "swi": swi,
             "images": image_urls,
+            "message": "分析完成"
+        })
+    except Exception as e:
+        logger.exception(e)
+        return ResponseUtil.error(msg=str(e))
+
+
+@analysisController.post("/srd", dependencies=[Depends(CheckUserInterfaceAuth("eaviz:srd:analyse"))])
+@log_decorator(title="EDF分析", business_type=11)
+async def analyse_srd_by_edf_id(request: Request,
+                                edf_data_analyse: EdfDataAnalyseSRDModel,
+                                query_db: Session = Depends(get_db),
+                                current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
+    try:
+        edf_raw_query = EdfRawQueryModel(edfId=edf_data_analyse.edf_id)
+        edf_raw_query_result = EdfService.get_edf_raw_by_id_services(query_db, edf_raw_query)
+        if not edf_raw_query_result.is_success:  # 检查是否获取成功
+            return ResponseUtil.error(msg=edf_raw_query_result.message)
+
+        logger.info(edf_raw_query_result.message)
+        raw = edf_raw_query_result.result
+
+        model_name = edf_data_analyse.method
+        if model_name not in EAVizConfig.ModelConfig.SRD_MODEL:
+            return ResponseUtil.error(msg='模型选择有误')
+
+        model = request.app.state.models.get(model_name)  # todo 与model处协调一下
+        if not model:
+            logger.error(f"对应的预训练模型未加载: {model_name}")
+            return ResponseUtil.error(msg=f"预训练模型未加载: {model_name}")
+
+        SRD.srd(raw, model, edf_data_analyse.start_time, edf_data_analyse.stop_time, edf_data_analyse.ch_idx)
+
+        return ResponseUtil.success(data={
             "message": "分析完成"
         })
     except Exception as e:
