@@ -4,11 +4,7 @@ from torch.nn.functional import avg_pool3d
 from torch.nn import Module, Hardswish, LeakyReLU, ReLU, ReLU6, SiLU, Upsample, ModuleList, Conv3d, BatchNorm3d, \
     MaxPool3d, AdaptiveAvgPool3d, Linear, init, Sequential
 from functools import partial
-
-
-# ModuleNotFoundError: No module named 'models'
-# 在使用torch.load()加载模型的文件最开始加上
-# path.insert(0, path1.abspath('./VD'))
+from sys import modules
 
 
 class DetectModule(Module):
@@ -36,6 +32,15 @@ class DetectModule(Module):
 
 
 def attempt_load(weights, device=None, inplace=True, fuse=True):
+    # ModuleNotFoundError: No module named 'models' 原因说明：
+    # 模型文件（.pt）保存时，类引用是字符串 'models.yolo.Detect'
+    # torch.load() 反序列化时，pickle 会执行 import models 来查找模块
+    # 由于 models 在 eaviz.VD.models，不在顶层，pickle 找不到
+    # 解决：将 eaviz.VD.models 注册到 sys.modules['models']，让 pickle 能找到
+    if 'models' not in modules:
+        from eaviz.VD import models
+        modules['models'] = models
+
     model = Ensemble()
     ckpt = load(weights, map_location='cpu')  # load
     ckpt = (ckpt.get('ema') or ckpt['model']).to(device).float()  # FP32 model
