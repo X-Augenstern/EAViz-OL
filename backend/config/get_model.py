@@ -15,7 +15,6 @@ from eaviz.AD.AE_Combine import AutoEncoder, SkipAutoEncoder, MemAutoEncoder, Es
 from eaviz.SpiD.Unet34 import Unet34
 from eaviz.SRD.Excellent import Celestial
 from eaviz.VD.Load_model import DetectModule, RecognitionModule
-from eaviz.VD.config import Config
 
 
 class ModelUtil:
@@ -129,7 +128,8 @@ class ModelUtil:
     @classmethod
     async def _init_spid(cls, model_dict):
         def _prepare_model(test_weight):
-            model = Unet34(n_channels=1, SA=True)  # 带SA channel=1 all in：19  注意SA
+            cfg = EAVizConfig.SpiDConfig
+            model = Unet34(n_channels=cfg.CHANNEL, SA=cfg.SA)  # 带SA channel=1 all in：19  注意SA
             state_dict = load(test_weight)['state_dict']
             model.load_state_dict(state_dict)
             return model.float().cuda().eval()
@@ -170,16 +170,18 @@ class ModelUtil:
             return None
 
     @classmethod
-    async def _init_vd(cls, model_dict, cfg):
+    async def _init_vd(cls, model_dict):
         def _prepare_detect_model(test_weight):
-            model = DetectModule(test_weight, device=cfg.device, fp16=cfg.half)
-            img_detection = empty(*cfg.warmshape_for_object_detection, dtype=t_float, device=cfg.device)
+            cfg = EAVizConfig.VDConfig
+            model = DetectModule(test_weight, device=cfg.DEVICE, fp16=cfg.HALF)
+            img_detection = empty(*cfg.WARMSHAPE_FOR_OBJECT_DETECTION, dtype=t_float, device=cfg.DEVICE)
             model.forward(img_detection)
             return model
 
         def _prepare_action_model(test_weight):
-            model = RecognitionModule(test_weight, device=cfg.device)
-            img_action = empty(*cfg.warmshape_for_action_recognition, dtype=t_float, device=cfg.device)
+            cfg = EAVizConfig.VDConfig
+            model = RecognitionModule(test_weight, device=cfg.DEVICE)
+            img_action = empty(*cfg.WARMSHAPE_FOR_ACTION_RECOGNITION, dtype=t_float, device=cfg.DEVICE)
             model.forward(img_action)
             return model
 
@@ -212,7 +214,7 @@ class ModelUtil:
         await cls._init_ad(model_dict)
         await cls._init_spid(model_dict)
         await cls._init_srd(model_dict)
-        await cls._init_vd(model_dict, Config)
+        await cls._init_vd(model_dict)
         if len(model_dict.keys()) == EAVizConfig.ModelConfig.MODEL_NUM:
             logger.info("所有预训练模型初始化成功")
         else:

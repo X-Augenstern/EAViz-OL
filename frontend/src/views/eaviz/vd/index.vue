@@ -2,7 +2,7 @@
   <div class="app-container">
     <el-steps :active="activeStep" direction="vertical" align-center>
       <!-- 第一步：上传视频 -->
-      <el-step title="请上传要分析的视频（支持格式：MP4）">
+      <el-step title="请上传要分析的视频（支持格式：MP4，20FPS）">
         <template #description>
           <div style="margin-top: 16px">
             <el-upload

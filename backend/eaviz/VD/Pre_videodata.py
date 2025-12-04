@@ -1,3 +1,4 @@
+from config.env import EAVizConfig
 from cv2 import VideoCapture, resize, INTER_LINEAR, copyMakeBorder, BORDER_CONSTANT, CAP_PROP_FRAME_WIDTH, \
     CAP_PROP_FRAME_HEIGHT
 from numpy import ascontiguousarray, mod
@@ -5,12 +6,11 @@ from torch import device, from_numpy
 
 
 class LoadVideos:
-    def __init__(self, cfg, input_list, stride, next_video_callback=None):
+    def __init__(self, input_list, stride, next_video_callback=None):
         self.video_path_list = input_list  # 视频路径列表
         self.num_video = len(self.video_path_list)
         self.stride = stride  # 步幅值
-        self.cfg = cfg
-        self.device = device(self.cfg.device)
+        self.device = device(EAVizConfig.VDConfig.DEVICE)
         self.cap = None
         self.video_changed_callback = next_video_callback
         self.count = 0
@@ -41,7 +41,7 @@ class LoadVideos:
         raise StopIteration  # 所有视频都已尝试且无法读取
 
     def process_frame(self, img0, path):
-        im = letterbox(img0, self.cfg.imgsz, stride=self.stride, auto=self.cfg.auto)[0]
+        im = letterbox(img0, EAVizConfig.VDConfig.IMGSZ, stride=self.stride, auto=EAVizConfig.VDConfig.AUTO)[0]
         im = im.transpose((2, 0, 1))[::-1]
         im = from_numpy(ascontiguousarray(im)).to(self.device).float() / 255  # 处理后的图像数据
         if len(im.shape) == 3:

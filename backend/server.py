@@ -55,9 +55,9 @@ async def lifespan(app: FastAPI):
     # 初始化全局线程池执行器用于视频处理（CPU/GPU密集型任务）
     # 使用线程池而不是进程池，因为PyTorch模型通常在同一进程内共享更高效
     # max_workers可以根据服务器配置调整，建议为CPU核心数或GPU数量
-    app.state.vd_executor = ThreadPoolExecutor(max_workers=EAVizConfig.ModelConfig.VD_EXECUTOR_MAX_WORKERS,
+    app.state.vd_executor = ThreadPoolExecutor(max_workers=EAVizConfig.VDConfig.VD_EXECUTOR_MAX_WORKERS,
                                                thread_name_prefix="vd_processor")
-    logger.info(f"VD视频处理线程池已初始化，最大并发数: {EAVizConfig.ModelConfig.VD_EXECUTOR_MAX_WORKERS}")
+    logger.info(f"VD视频处理线程池已初始化，最大并发数: {EAVizConfig.VDConfig.VD_EXECUTOR_MAX_WORKERS}")
 
     logger.info(f"{AppConfig.app_name}启动成功")
     yield

@@ -1,7 +1,7 @@
 from os import listdir, path
 from torch import from_numpy, no_grad, argmax
 from numpy import zeros, where, array, load as np_load
-import eaviz.SpiD.Config as cfg
+from config.env import EAVizConfig
 
 
 def pair2label(s_pairs, L, th):
@@ -46,8 +46,9 @@ def getlabel(model, npz_path):
         # print('实际标签')
         # print(np.load(npzpath)['spike_label'])
 
-        for i in range(len(cfg.mean)):  # 对不同通道进行归一化
-            input2[i] = (input2[i] - cfg.mean[i]) / cfg.std[i]
+        cfg = EAVizConfig.SpiDConfig
+        for i in range(len(cfg.MEAN)):  # 对不同通道进行归一化
+            input2[i] = (input2[i] - cfg.MEAN[i]) / cfg.STD[i]
         input2 = input2.unsqueeze(0)  # (1,19,15000) 作为模型输入
         # batch_size = input2.shape[0]  # 1
 

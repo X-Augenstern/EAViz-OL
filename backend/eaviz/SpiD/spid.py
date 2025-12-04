@@ -30,9 +30,6 @@ class SPID:
         template = read_evokeds(EAVizConfig.AddressConfig.get_spid_adr('tem'), verbose='error')[0]
         template_data = template.data  # (19,150)
 
-        # 设置相关度阈值
-        corr_threshold = 0.985
-
         # 初始化保存相关窗口的列表
         corr_windows = []
 
@@ -47,7 +44,7 @@ class SPID:
             corr = corrcoef(window_data, template_data)[0, 1]  # (19,150) 取[0,1]作为参考，不取[0,0]是因为对角线（变量自身与自身）的相关系数都是1
             abs_corr = abs(corr)  # 正相关和负相关都可以
             # 判断相关度是否超过阈值，如果超过则保存当前窗口的起始和终止时间
-            if abs_corr > corr_threshold:
+            if abs_corr > EAVizConfig.SpiDConfig.CORR_THRESHOLD:
                 corr_windows.append((i / 500, (i + 150) / 500))
 
         annotations_list = []
@@ -82,10 +79,9 @@ class SPID:
         record_microvolts = raw1.get_data() * 1e6  # 单位转换
 
         # 0.5-50 BP
-        samplerate = 500  # in Hz
         passband = [0.5, 50]  # passband for bandpass filter
         forder = 6  # filter order
-        record1 = filter_2sIIR(record_microvolts, passband, samplerate, forder, 'bandpass')
+        record1 = filter_2sIIR(record_microvolts, passband, EAVizConfig.SpiDConfig.SAMPLE_RATE, forder, 'bandpass')
 
         # folder process
         mat_path = EAVizConfig.AddressConfig.get_spid_adr('mat')

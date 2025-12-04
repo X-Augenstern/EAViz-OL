@@ -1,11 +1,13 @@
 from os import path, listdir
 from scipy.io import loadmat
 from numpy import arange, load, savez_compressed
+from config.env import EAVizConfig
 
-duration = 15000  # 每个样本的长度
-sample_rate = 500  # 采样频率
-stage_dict = {'NREM1': 1, 'NREM2': 1, 'NREM3': 1, 'WAKE': 0, 'REM': 2}
-fillnum = 5  # 在编码数字前自动补到5位，用0填充 (00001 00002 ...)
+cfg = EAVizConfig.SpiDConfig
+duration = cfg.DURATION
+sample_rate = cfg.SAMPLE_RATE
+stage_dict = cfg.STAGE_DICT
+fillnum = cfg.FILLNUM
 
 
 def check_spike_num(root):

@@ -1,4 +1,5 @@
 from torch import from_numpy, stack
+from config.env import EAVizConfig
 
 
 def dataset(data):
@@ -13,13 +14,9 @@ def dataset(data):
 
 
 def norm(slice_data):
-    mean = [-0.019813645741049712, -0.08832978649691134, -0.17852094982207156, -0.141283147662929,
-            -0.164364199798768, -0.10493702302254725, 0.0069039257850445224, 0.053706128833827776,
-            -0.07108375609375886, -0.036934718124703704]
-    std = [51.59277790417314, 55.41723123794839, 71.50782941925381, 67.58345657953764, 55.94475895317833,
-           52.58134875167906, 28.773163340067427, 28.172769340175684, 25.5494790918186, 24.69622808553754]
+    cfg = EAVizConfig.ADConfig
 
     # z-score标准化
     for i in range(slice_data.shape[0]):
-        slice_data[i] = (slice_data[i] - mean[i]) / std[i]
+        slice_data[i] = (slice_data[i] - cfg.MEAN[i]) / cfg.STD[i]
     return slice_data

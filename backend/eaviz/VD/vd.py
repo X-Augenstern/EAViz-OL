@@ -1,14 +1,15 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from math import ceil
-from os import path, makedirs
+from os import path
+from config.env import EAVizConfig
 from typing import List, Callable, Optional, Dict, Any
 from threading import Lock
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from cv2 import CAP_PROP_FRAME_COUNT, CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, resize, VideoWriter, VideoCapture
 from torch import device
 from eaviz.VD.Pre_videodata import LoadVideos
 from eaviz.VD.api import Colors, annotating_box, actionRecognition, non_max_suppression, scale_coords
-from eaviz.VD.config import Config
 from utils.log_util import logger
+
+cfg = EAVizConfig.VDConfig
 
 
 class VDProcessor:
@@ -34,10 +35,7 @@ class VDProcessor:
         self.actionModel = action_model
         self.progress_callback = progress_callback
 
-        self.cfg = Config()
-        self.conf_thres = 0.25  # 置信度
-        self.iou_thres = 0.45  # iou
-        self.device = device(self.cfg.device)
+        self.device = device(cfg.DEVICE)
         self.color = Colors()
 
         # 每个视频处理任务的独立状态
@@ -72,7 +70,7 @@ class VDProcessor:
         if state['last_box'] is None:  # 未检测到患者
             state['output_frames'].append(im)
         else:
-            out = annotating_box(img0, xyxy, color=self.color(1, True), line_width=self.cfg.line_thickness)
+            out = annotating_box(img0, xyxy, color=self.color(1, True), line_width=cfg.LINE_THICKNESS)
             state['output_frames'].append(out)
             # 将处理后的图像中特定区域的特征保存起来
             state['features'].append(resize(im[int(xyxy[1]):int(xyxy[3]), int(xyxy[0]):int(xyxy[2])], (112, 112)))
@@ -80,7 +78,8 @@ class VDProcessor:
     def _detect(self, img, img0, last_box):
         """执行目标检测"""
         pred, featuremap = self.detectModel(img, augment=False, visualize=False)
-        pred = non_max_suppression([pred[0], pred[2]], self.conf_thres, self.iou_thres, None, False, max_det=5)
+        pred = non_max_suppression([pred[0], pred[2]], cfg.CONF_THRES, cfg.IOU_THRES, cfg.CLASSES, cfg.AGNOSTIC_NMS,
+                                   max_det=cfg.MAX_DET)
 
         if pred is not None and len(pred) > 0:
             pred = sorted(pred, key=lambda x: x[0][4], reverse=True)[0]
@@ -94,8 +93,8 @@ class VDProcessor:
         *xyxy, conf, cls = pred[0]  # 星号表达式 将 pred[0] 中的前几个元素赋值给一个名为 xyxy 的列表
         return last_box, xyxy
 
-    def _video_changed(self, video_path: str, video_size, state: Dict[str, Any], output_adr: Optional[str] = None,
-                       thread_pool: Optional[ThreadPoolExecutor] = None):
+    @staticmethod
+    def _video_changed(video_path: str, video_size, state: Dict[str, Any]):
         """
         视频切换回调函数（用于处理多个视频的场景）
         注意：对于单个视频，此回调在视频读取完毕时会被调用，但此时不应该清空output_frames
@@ -192,10 +191,9 @@ class VDProcessor:
         try:
             stride = self.detectModel.stride
             dataset = LoadVideos(
-                Config(),
                 [video_path],
                 stride=stride,
-                next_video_callback=lambda path, size: self._video_changed(path, size, state, output_adr)
+                next_video_callback=lambda path, size: self._video_changed(path, size, state)
             )
             dataset = iter(dataset)
 

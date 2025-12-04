@@ -131,23 +131,22 @@ class EAVizSettings:
         SpiD_MODEL = ['Template Matching', 'Unet+ResNet34']
         SRD_MODEL = ['MKCNN']
         VD_MODEL = ['YOLOv5l_3DResNet']
-        VD_EXECUTOR_MAX_WORKERS = 5
         MODEL_NUM = len(ESC_SD_MODEL) + len(AD_MODEL) / 2 + len(SpiD_MODEL) - 1 + len(SRD_MODEL) + len(
             VD_MODEL) * 2  # 14
 
         ESC_SD_MODEL_DES = 'This model requires the <INPUT> .EDF FILE:\n' \
                            'sfreq: 1000Hz\n' \
-                           '21 channels, which can be selected in Select Signals Form per button ESC + SD (21 channels)\n' \
+                           '21 channels\n' \
                            'preprocessing: None\n' \
                            'time span: 4s'
         AD_MODEL_DES = 'This model requires the <INPUT> .EDF FILE:\n' \
                        'sfreq: 1000Hz\n' \
-                       '19 channels, which can be selected in Select Signals Form per button AD, SpiD (19 channels)\n' \
+                       '19 channels\n' \
                        'preprocessing: None\n' \
                        'time span: 11s'
         SpiD_MODEL_DES = 'This model requires the <INPUT> .EDF FILE:\n' \
                          'sfreq: 500Hz\n' \
-                         '19 channels, which can be selected in Select Signals Form per button AD, SpiD (19 channels)\n' \
+                         '19 channels\n' \
                          'preprocessing: None\n' \
                          'time span: >=0.3s(Template) | multiple of 30s(Semantics)'
         SRD_MODEL_DES = 'This model requires the <INPUT> .EDF FILE:\n' \
@@ -346,6 +345,56 @@ class EAVizSettings:
         #             f'{file.filename.rsplit(".")[-1]}')
         # # files/upload_path/upload/2024/07/05/demo_edf_20240705132949A605.edf
         # filepath = path.join(dir_path, filename)
+
+    class ADConfig:
+        MEAN = [-0.019813645741049712, -0.08832978649691134, -0.17852094982207156, -0.141283147662929,
+                -0.164364199798768, -0.10493702302254725, 0.0069039257850445224, 0.053706128833827776,
+                -0.07108375609375886, -0.036934718124703704]
+        STD = [51.59277790417314, 55.41723123794839, 71.50782941925381, 67.58345657953764, 55.94475895317833,
+               52.58134875167906, 28.773163340067427, 28.172769340175684, 25.5494790918186, 24.69622808553754]
+
+    class SpiDConfig:
+        # template matching
+        CORR_THRESHOLD = 0.985
+
+        # model
+        CHANNEL = 1
+        SA = True
+        LOSS_WEIGHT = 0.6
+
+        # mat2npz
+        DURATION = 15000  # 每个样本的长度
+        SAMPLE_RATE = 500  # 采样频率
+        STAGE_DICT = {'NREM1': 1, 'NREM2': 1, 'NREM3': 1, 'WAKE': 0, 'REM': 2}
+        FILLNUM = 5  # 在编码数字前自动补到5位，用0填充 (00001 00002 ...)
+
+        # 对于19个通道，每个通道的均值和方差
+        MEAN = [0.0011932824351784102, 0.0011390994131762048, 0.002174121577085201, 0.002013172372939422,
+                -0.0009785268050904008,
+                0.0002514346867206353, 0.0015363378885672504, -0.00253867868545743, -0.0025817066801644335,
+                -0.0011758238115930847,
+                0.0009989625724854227, 0.002661656853050991, -0.0015852695649372956, -0.0005333712131520023,
+                -6.464343351495097e-05,
+                0.0011752747863873576, 0.002279519405149002, 0.003212242891248821, -0.003328868490592702]
+        STD = [31.649422589030447, 33.41086614793433, 31.072790936903637, 30.325820468923087, 26.89389439146389,
+               28.20901495542336, 28.052230055440464, 25.847229627152533, 31.018606893590956, 31.315137397126133,
+               26.68113085331614, 24.673989932452198, 31.562467510679348, 26.17375310899985, 30.13404382066629,
+               28.180303034702355, 36.66892740731378, 32.64965539572045, 30.10440133194577]
+
+    class VDConfig:
+        VD_EXECUTOR_MAX_WORKERS = 5
+        DEVICE = 0
+        IMGSZ = [640, 640]
+        HALF = False
+        AUTO = True
+        CLASSES = None
+        AGNOSTIC_NMS = False
+        CONF_THRES = 0.25
+        IOU_THRES = 0.45
+        MAX_DET = 5
+        LINE_THICKNESS = 5
+        WARMSHAPE_FOR_OBJECT_DETECTION = (1, 3, 640, 640)
+        WARMSHAPE_FOR_ACTION_RECOGNITION = (1, 3, 60, 112, 112)
 
 
 class GetConfig:

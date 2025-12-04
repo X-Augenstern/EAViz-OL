@@ -289,7 +289,7 @@ async def analyse_vd_by_video_path(
             processor.process_videos,
             video_paths,
             output_adr,
-            EAVizConfig.ModelConfig.VD_EXECUTOR_MAX_WORKERS
+            EAVizConfig.VDConfig.VD_EXECUTOR_MAX_WORKERS
         )
         logger.info(f"VD视频批量处理完成，共 {len(results)} 个结果")
 

@@ -1,6 +1,6 @@
 from torch.nn import init
 from torch import nn
-from eaviz.SpiD.Config import loss_weight
+from config.env import EAVizConfig
 from eaviz.SpiD.resnet import resnet34
 
 
@@ -107,6 +107,7 @@ class Unet34(nn.Module):
         seg, stage = predict['seg_out'], predict['stage_out']
         Reg_Loss = self.Loss(seg, seg_label)  # 使用的交叉熵，与原模型有区别
         CE_Loss = self.Loss(stage, stage_label)
+        loss_weight = EAVizConfig.SpiDConfig.LOSS_WEIGHT
         return dict(reg_Loss=Reg_Loss, CE_Loss=CE_Loss, total_Loss=loss_weight * Reg_Loss + (1 - loss_weight) * CE_Loss)
 #
 #
