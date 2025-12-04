@@ -3,6 +3,19 @@ from fastapi.staticfiles import StaticFiles
 from config.env import UploadConfig
 
 
+class NoCacheStaticFiles(StaticFiles):
+    """
+    自定义 StaticFiles，强制禁止缓存，避免浏览器命中 304 后仍使用旧的空缓存
+    """
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+
 def mount_staticfiles(app: FastAPI):
     """
     将一个目录中的静态文件提供为可通过 HTTP 访问的资源。具体来说，app.mount 方法将一个路径前缀与一个目录关联起来，使得该目录中的文件可以通过该路径前缀进行访问。
@@ -70,6 +83,8 @@ def mount_staticfiles(app: FastAPI):
             EAViz Files/download_path/ESC_SD/SD/feature_map/feature_map.png
             读取文件并返回给浏览器，最终渲染在页面上。
     """
+    # 挂载下载目录，支持视频、图片等静态文件访问
+    # StaticFiles 默认支持 HTTP Range 请求，这对于视频流式播放很重要
     app.mount(
         f"{UploadConfig.DOWNLOAD_PREFIX}",
         StaticFiles(directory=f"{UploadConfig.DOWNLOAD_PATH}"),

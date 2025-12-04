@@ -20,3 +20,9 @@ export const srdAnalyse = (query) =>
   request.post('/eaviz/srd', query, {
     timeout: 5 * 60 * 1000,
   });
+
+// VD
+export const vdAnalyse = (query) =>
+  request.post('/eaviz/vd', query, {
+    timeout: 10 * 60 * 1000, // 视频处理可能需要更长时间
+  });

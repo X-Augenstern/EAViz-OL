@@ -1,5 +1,8 @@
+from os import remove, makedirs
 from pathlib import Path
-from fastapi import APIRouter, Depends, Request
+from tempfile import NamedTemporaryFile
+from asyncio import get_event_loop
+from fastapi import APIRouter, Depends, Request, UploadFile, File, Form
 from config.get_db import get_db
 from config.env import EAVizConfig, UploadConfig
 from module_admin.annotation.log_annotation import log_decorator
@@ -13,12 +16,13 @@ from eaviz.ESC_SD.escsd import ESCSD
 from eaviz.AD.ad import AD
 from eaviz.SpiD.spid import SPID
 from eaviz.SRD.srd import SRD
+from eaviz.VD.vd import VDProcessor
 
 analysisController = APIRouter(prefix='/eaviz', dependencies=[Depends(LoginService.get_current_user)])
 
 
 @analysisController.post("/escsd", dependencies=[Depends(CheckUserInterfaceAuth("eaviz:escsd:analyse"))])
-@log_decorator(title="EDF分析", business_type=11)
+@log_decorator(title="ESCSD分析", business_type=11)
 async def analyse_escsd_by_edf_id(request: Request,
                                   edf_data_analyse: EdfDataAnalyseGenericModel,
                                   query_db: Session = Depends(get_db),
@@ -79,7 +83,7 @@ async def analyse_escsd_by_edf_id(request: Request,
 
 
 @analysisController.post("/ad", dependencies=[Depends(CheckUserInterfaceAuth("eaviz:ad:analyse"))])
-@log_decorator(title="EDF分析", business_type=11)
+@log_decorator(title="AD分析", business_type=12)
 async def analyse_ad_by_edf_id(request: Request,
                                edf_data_analyse: EdfDataAnalyseADModel,
                                query_db: Session = Depends(get_db),
@@ -112,14 +116,10 @@ async def analyse_ad_by_edf_id(request: Request,
         topo_abs = EAVizConfig.AddressConfig.get_ad_adr('topo')
         res_abs = EAVizConfig.AddressConfig.get_ad_adr('res')
 
-        # 把目录下的结果图转成 URL（StaticFiles 访问路径）
-        # app.mount 只是告诉 FastAPI：URL 前缀 ↔ 硬盘目录 的映射关系。
-        # 后端代码里拿到的是 硬盘路径，必须转换成 URL 才能返回给前端。
         image_urls = [
             make_static_url(request, topo_abs),
             make_static_url(request, res_abs)
         ]
-        # 过滤掉没转换成功的
         image_urls = [u for u in image_urls if u]
 
         return ResponseUtil.success(data={
@@ -132,7 +132,7 @@ async def analyse_ad_by_edf_id(request: Request,
 
 
 @analysisController.post("/spid", dependencies=[Depends(CheckUserInterfaceAuth("eaviz:spid:analyse"))])
-@log_decorator(title="EDF分析", business_type=11)
+@log_decorator(title="SpiD分析", business_type=13)
 async def analyse_spid_by_edf_id(request: Request,
                                  edf_data_analyse: EdfDataAnalyseSpiDModel,
                                  query_db: Session = Depends(get_db),
@@ -167,13 +167,9 @@ async def analyse_spid_by_edf_id(request: Request,
             swi = SPID.ss(raw, model, edf_data_analyse.start_time, edf_data_analyse.stop_time)
             res_abs = EAVizConfig.AddressConfig.get_spid_adr('res')
 
-        # 把目录下的结果图转成 URL（StaticFiles 访问路径）
-        # app.mount 只是告诉 FastAPI：URL 前缀 ↔ 硬盘目录 的映射关系。
-        # 后端代码里拿到的是 硬盘路径，必须转换成 URL 才能返回给前端。
         image_urls = [
             make_static_url(request, res_abs)
         ]
-        # 过滤掉没转换成功的
         image_urls = [u for u in image_urls if u]
 
         return ResponseUtil.success(data={
@@ -187,11 +183,11 @@ async def analyse_spid_by_edf_id(request: Request,
 
 
 @analysisController.post("/srd", dependencies=[Depends(CheckUserInterfaceAuth("eaviz:srd:analyse"))])
-@log_decorator(title="EDF分析", business_type=11)
+@log_decorator(title="SRD分析", business_type=14)
 async def analyse_srd_by_edf_id(request: Request,
-                               edf_data_analyse: EdfDataAnalyseSRDModel,
-                               query_db: Session = Depends(get_db),
-                               current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
+                                edf_data_analyse: EdfDataAnalyseSRDModel,
+                                query_db: Session = Depends(get_db),
+                                current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
     """
     流式输出 SRD 分析数据
     """
@@ -225,6 +221,122 @@ async def analyse_srd_by_edf_id(request: Request,
     except Exception as e:
         logger.exception(e)
         return ResponseUtil.error(msg=str(e))
+
+
+@analysisController.post("/vd", dependencies=[Depends(CheckUserInterfaceAuth("eaviz:vd:analyse"))])
+@log_decorator(title="VD分析", business_type=15)
+async def analyse_vd_by_video_path(
+        request: Request,
+        video_files: List[UploadFile] = File(..., description="一个或多个MP4视频文件"),
+        save_output: bool = Form(False),
+        query_db: Session = Depends(get_db),
+        current_user: CurrentUserModel = Depends(LoginService.get_current_user)):
+    """
+    VD视频分析接口
+    每个上传的视频都会被保存为临时文件，分析完成后自动删除。
+    使用FastAPI的线程池执行器处理CPU/GPU密集型任务，支持多个用户并发请求。
+    """
+    if not video_files:
+        return ResponseUtil.error(msg="请至少上传一个视频文件")
+
+    tmp_files: List[tuple[str, str]] = []  # [(tmp_path, original_name)]
+    try:
+        # 验证视频文件格式（只支持MP4），并保存到临时文件
+        for video_file in video_files:
+            if not video_file.filename or not video_file.filename.lower().endswith('.mp4'):
+                return ResponseUtil.error(msg=f"文件 {video_file.filename} 不是MP4格式")
+
+            with NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_file:
+                tmp_path = tmp_file.name
+                while chunk := await video_file.read(1024 * 1024 * 10):  # 每次读取10MB
+                    tmp_file.write(chunk)
+            tmp_files.append((tmp_path, video_file.filename))
+            logger.info(f"视频文件已保存到临时文件: {tmp_path}, 原始文件名: {video_file.filename}, "
+                        f"文件大小: {path.getsize(tmp_path)} bytes")
+
+        # 处理save_output参数（可能是字符串 "true"/"false" 或布尔值）
+        if isinstance(save_output, str):
+            save_output = save_output.lower() in ('true', '1', 'yes', 'on')
+        logger.info(f"save_output参数值: {save_output} (类型: {type(save_output)})")
+        if save_output:
+            output_adr = EAVizConfig.AddressConfig.get_vd_adr("res")
+            logger.info(f"输出目录已设置: {output_adr}, 目录是否存在: {path.exists(output_adr)}")
+        else:
+            output_adr = None
+            logger.info("save_output为False，不保存处理后的视频")
+
+        video_paths = [t[0] for t in tmp_files]
+        logger.info(
+            f"开始处理VD视频分析, 共 {len(video_paths)} 个视频, save_output={save_output}, output_adr={output_adr}")
+
+        # 获取模型
+        method = EAVizConfig.ModelConfig.VD_MODEL[0]
+        parse = method.split('_')
+        detect_model, action_model = parse[0], parse[1]
+        detect_model = request.app.state.models.get(detect_model)
+        action_model = request.app.state.models.get(action_model)
+        if not detect_model or not action_model:
+            logger.error(f"对应的预训练模型未加载: {method}")
+            return ResponseUtil.error(msg=f"预训练模型未加载: {method}")
+
+        # 创建VD处理器
+        processor = VDProcessor(detect_model=detect_model, action_model=action_model)
+        loop = get_event_loop()
+        executor = request.app.state.vd_executor
+        # 在线程池中执行批量视频处理任务（VDProcessor内部再做并发）
+        results = await loop.run_in_executor(
+            executor,
+            processor.process_videos,
+            video_paths,
+            output_adr,
+            EAVizConfig.ModelConfig.VD_EXECUTOR_MAX_WORKERS
+        )
+        logger.info(f"VD视频批量处理完成，共 {len(results)} 个结果")
+
+        # 处理VD分析结果
+        videos_data = []
+        all_success = True
+        for (tmp_path, original_name), result in zip(tmp_files, results):
+            success = result.get('success', False)
+            if not success:
+                all_success = False
+                logger.error(f"视频处理失败: {original_name}, message={result.get('message')}")
+
+            # 转换输出路径为URL（如果保存了输出视频）
+            output_url = None
+            if result.get('output_path'):
+                output_path = result['output_path']
+                output_url = make_static_url(request, output_path)
+                logger.info(f"准备转换视频路径为URL: {output_path}，生成的视频URL: {output_url}")
+                if not output_url:
+                    logger.warning(f"无法生成视频URL，路径: {output_path}")
+
+            videos_data.append({
+                "video_name": original_name,
+                "tmp_path": tmp_path,
+                "output_url": output_url,
+                "results": result.get('results', []),
+                "success": success,
+                "message": result.get('message', '处理完成' if success else '处理失败')
+            })
+
+        return ResponseUtil.success(data={
+            "videos": videos_data,
+            "message": "全部视频处理完成" if all_success else "部分视频处理失败，请检查结果"
+        })
+
+    except Exception as e:
+        logger.exception(e)
+        return ResponseUtil.error(msg=str(e))
+    finally:
+        # 删除所有临时文件
+        for tmp_path, original_name in tmp_files:
+            if tmp_path and path.exists(tmp_path):
+                try:
+                    remove(tmp_path)
+                    logger.info(f"临时文件已删除: {tmp_path}, 原始文件名: {original_name}")
+                except Exception as e:
+                    logger.warning(f"删除临时文件失败: {tmp_path}, 错误: {str(e)}")
 
 
 def make_static_url(request: Request, abs_path: str) -> str:

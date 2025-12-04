@@ -130,7 +130,8 @@ class EAVizSettings:
                     'DenseNet121_SkipAE_BCELoss', 'DenseNet121_MemAE_BCELoss', 'DenseNet121_VAE_BCELoss']
         SpiD_MODEL = ['Template Matching', 'Unet+ResNet34']
         SRD_MODEL = ['MKCNN']
-        VD_MODEL = ['yolov5l_3dResnet']
+        VD_MODEL = ['YOLOv5l_3DResNet']
+        VD_EXECUTOR_MAX_WORKERS = 5
         MODEL_NUM = len(ESC_SD_MODEL) + len(AD_MODEL) / 2 + len(SpiD_MODEL) - 1 + len(SRD_MODEL) + len(
             VD_MODEL) * 2  # 14
 
@@ -224,7 +225,7 @@ class EAVizSettings:
             "AD": ["index", "topomap", "res"],
             "SpiD": ["index", "family", "res", "mat", "npz"],
             "SRD": [],
-            "VD": []
+            "VD": ["res"]
         }
 
         @classmethod
@@ -281,6 +282,14 @@ class EAVizSettings:
                 'mat': path.join(base_cp_root, "mat"),
                 'npz': path.join(base_cp_root, "npz"),
                 'tem': path.join(base_cp_root, 'liangC3_ave.fif')
+            }
+            return path.abspath(hashtable.get(name, ''))
+
+        @classmethod
+        def get_vd_adr(cls, name):
+            base = path.join(cls.BASE_ROOT, "VD")
+            hashtable = {
+                'res': path.join(base, "res"),
             }
             return path.abspath(hashtable.get(name, ''))
 

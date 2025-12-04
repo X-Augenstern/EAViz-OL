@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 from utils.log_util import logger
 from config.env import AppConfig
+from config.env import EAVizConfig
 from config.get_db import init_create_table
 from config.get_redis import RedisUtil
 from config.get_scheduler import SchedulerUtil
@@ -50,10 +52,21 @@ async def lifespan(app: FastAPI):
     await RedisUtil.init_sys_config(app.state.redis)
     await SchedulerUtil.init_system_scheduler()
     app.state.models = await ModelUtil.init_models()
+    # 初始化全局线程池执行器用于视频处理（CPU/GPU密集型任务）
+    # 使用线程池而不是进程池，因为PyTorch模型通常在同一进程内共享更高效
+    # max_workers可以根据服务器配置调整，建议为CPU核心数或GPU数量
+    app.state.vd_executor = ThreadPoolExecutor(max_workers=EAVizConfig.ModelConfig.VD_EXECUTOR_MAX_WORKERS,
+                                               thread_name_prefix="vd_processor")
+    logger.info(f"VD视频处理线程池已初始化，最大并发数: {EAVizConfig.ModelConfig.VD_EXECUTOR_MAX_WORKERS}")
+
     logger.info(f"{AppConfig.app_name}启动成功")
     yield
     await RedisUtil.close_redis_pool(app)
     await SchedulerUtil.close_system_scheduler()
+    # 关闭线程池
+    if hasattr(app.state, 'vd_executor'):
+        app.state.vd_executor.shutdown(wait=True)
+        logger.info("VD视频处理线程池已关闭")
 
 
 # 初始化FastAPI对象
