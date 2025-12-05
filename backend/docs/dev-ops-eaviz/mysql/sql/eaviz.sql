@@ -259,6 +259,10 @@ insert into sys_menu
 values ('109', 'EDF管理', '1', '10', 'edf', 'system/edf/index', '', 1, 0, 'C', '0', '0', 'system:edf:list', 'clipboard',
         'admin', sysdate(), '', null, 'EDF管理菜单');
 insert into sys_menu
+values ('124', '视频管理', '1', '11', 'radio', 'system/video/index', '', 1, 0, 'C', '0', '0', 'system:video:list',
+        'radio',
+        'admin', sysdate(), '', null, 'VD视频管理菜单');
+insert into sys_menu
 values ('110', '在线用户', '2', '1', 'online', 'monitor/online/index', '', 1, 0, 'C', '0', '0', 'monitor:online:list',
         'online', 'admin', sysdate(), '', null, '在线用户菜单');
 insert into sys_menu
@@ -296,7 +300,7 @@ values ('121', 'SpiD', '4', '3', 'spid', 'eaviz/spid/index', '', 1, 0, 'C', '0',
         'admin', sysdate(), '', null, '棘波检测菜单');
 insert into sys_menu
 values ('122', 'SRD', '4', '4', 'srd', 'eaviz/srd/index', '', 1, 0, 'C', '0', '0', 'eaviz:srd:use', 'skill', 'admin',
-        sysdate(), '', null, '高频波检测菜单');
+        sysdate(), '', null, '棘波-涟波检测菜单');
 insert into sys_menu
 values ('123', 'VD', '4', '5', 'vd', 'eaviz/vd/index', '', 1, 0, 'C', '0', '0', 'eaviz:vd:use', 'skill', 'admin',
         sysdate(), '', null, '视频发作检测菜单');
@@ -445,6 +449,16 @@ values ('1063', 'EDF删除', '109', '3', '#', '', '', 1, 0, 'F', '0', '0', 'syst
 insert into sys_menu
 values ('1064', 'EDF数据获取', '109', '4', '#', '', '', 1, 0, 'F', '0', '0', 'system:edf:getData', '#', 'admin',
         sysdate(), '', null, '');
+-- VD视频管理按钮
+insert into sys_menu
+values ('1070', '视频查询', '124', '1', '#', '', '', 1, 0, 'F', '0', '0', 'system:video:query', '#', 'admin', sysdate(),
+        '', null, '');
+insert into sys_menu
+values ('1071', '视频删除', '124', '2', '#', '', '', 1, 0, 'F', '0', '0', 'system:video:remove', '#', 'admin',
+        sysdate(), '', null, '');
+insert into sys_menu
+values ('1072', '视频播放', '124', '3', '#', '', '', 1, 0, 'F', '0', '0', 'system:video:play', '#', 'admin', sysdate(),
+        '', null, '');
 -- 在线用户按钮
 insert into sys_menu
 values ('1046', '在线查询', '110', '1', '#', '', '', 1, 0, 'F', '0', '0', 'monitor:online:query', '#', 'admin',
@@ -633,6 +647,8 @@ values ('2', '122');
 insert into sys_role_menu
 values ('2', '123');
 insert into sys_role_menu
+values ('2', '124');
+insert into sys_role_menu
 values ('2', '500');
 insert into sys_role_menu
 values ('2', '501');
@@ -765,6 +781,14 @@ values ('2', '1062');
 insert into sys_role_menu
 values ('2', '1063');
 insert into sys_role_menu
+values ('2', '1064');
+insert into sys_role_menu
+values ('2', '1070');
+insert into sys_role_menu
+values ('2', '1071');
+insert into sys_role_menu
+values ('2', '1072');
+insert into sys_role_menu
 values ('3', '1');
 insert into sys_role_menu
 values ('3', '2');
@@ -791,6 +815,8 @@ values ('3', '122');
 insert into sys_role_menu
 values ('3', '123');
 insert into sys_role_menu
+values ('3', '124');
+insert into sys_role_menu
 values ('3', '1061');
 insert into sys_role_menu
 values ('3', '1062');
@@ -798,6 +824,12 @@ insert into sys_role_menu
 values ('3', '1063');
 insert into sys_role_menu
 values ('3', '1064');
+insert into sys_role_menu
+values ('3', '1070');
+insert into sys_role_menu
+values ('3', '1071');
+insert into sys_role_menu
+values ('3', '1072');
 
 
 -- ----------------------------
@@ -1027,21 +1059,24 @@ insert into sys_dict_data
 values (31, 10, '获取EDF数据', '10', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null,
         '获取EDF数据操作');
 insert into sys_dict_data
-values (32, 11, '分析ESCSD', '11', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null,
+values (32, 11, '播放视频', '11', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null,
+        '播放视频操作');
+insert into sys_dict_data
+values (33, 12, '分析ESCSD', '12', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null,
         '分析ESCSD操作');
 insert into sys_dict_data
-values (33, 12, '分析AD', '12', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null, '分析AD操作');
+values (34, 13, '分析AD', '13', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null, '分析AD操作');
 insert into sys_dict_data
-values (34, 13, '分析SpiD', '13', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null,
+values (35, 14, '分析SpiD', '14', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null,
         '分析SpiD操作');
 insert into sys_dict_data
-values (35, 13, '分析SRD', '14', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null, '分析SRD操作');
+values (36, 15, '分析SRD', '15', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null, '分析SRD操作');
 insert into sys_dict_data
-values (36, 14, '分析VD', '15', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null, '分析VD操作');
+values (37, 16, '分析VD', '16', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', sysdate(), '', null, '分析VD操作');
 insert into sys_dict_data
-values (37, 1, '成功', '0', 'sys_common_status', '', 'primary', 'N', '0', 'admin', sysdate(), '', null, '正常状态');
+values (38, 1, '成功', '0', 'sys_common_status', '', 'primary', 'N', '0', 'admin', sysdate(), '', null, '正常状态');
 insert into sys_dict_data
-values (38, 2, '失败', '1', 'sys_common_status', '', 'danger', 'N', '0', 'admin', sysdate(), '', null, '停用状态');
+values (39, 2, '失败', '1', 'sys_common_status', '', 'danger', 'N', '0', 'admin', sysdate(), '', null, '停用状态');
 
 
 -- ----------------------------
@@ -1313,3 +1348,39 @@ create table sys_edf_user
 ) engine = innodb
   DEFAULT CHARSET = utf8mb4
     comment = 'EDF和用户关联表';
+
+
+-- ----------------------------
+-- 22、视频表
+-- ----------------------------
+drop table if exists sys_video;
+create table sys_video
+(
+    video_id    int not null auto_increment comment '视频文件ID',
+    video_name  varchar(255) default '' comment '视频文件名',
+    video_size  float        default 0.0 comment '视频文件大小',
+    video_time  float        default 0.0 comment '视频文件时长',
+    video_path  varchar(255) default '' comment '视频文件路径',
+    video_res   varchar(255) default '' comment '视频文件分析结果',
+    upload_by   varchar(64)  default '' comment '上传者',
+    upload_time datetime     default CURRENT_TIMESTAMP comment '上传时间',
+    remark      varchar(500) default null comment '备注',
+    primary key (video_id)
+) engine = innodb
+  auto_increment = 1
+  DEFAULT CHARSET = utf8mb4
+    comment = '视频表';
+
+
+-- ----------------------------
+-- 21、视频和用户关联表  视频N-1用户
+-- ----------------------------
+drop table if exists sys_video_user;
+create table sys_video_user
+(
+    video_id int        not null comment '视频文件ID',
+    user_id  bigint(20) not null comment '用户ID',
+    primary key (video_id, user_id)
+) engine = innodb
+  DEFAULT CHARSET = utf8mb4
+    comment = '视频和用户关联表';
