@@ -1188,6 +1188,9 @@ values (2, '系统默认（有参）', 'default', 'default', 'module_task.schedu
 insert into sys_job
 values (3, '系统默认（多参）', 'default', 'default', 'module_task.scheduler_test.job', 'new', '{\"test\": 111}',
         '0/20 * * * * ?', '3', '1', '1', 'admin', sysdate(), '', null, '');
+insert into sys_job
+values (4, '视频清理定时任务', 'sqlalchemy', 'default', 'module_task.video_cleanup.job', NULL, NULL, '0 0 3 * * ?', '3',
+        '1', '0', 'admin', sysdate(), '', NULL, '每日3点清理过期视频');
 
 
 -- ----------------------------
