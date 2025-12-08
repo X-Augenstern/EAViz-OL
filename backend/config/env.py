@@ -1,11 +1,11 @@
-from os import path, getcwd, environ, makedirs
-from sys import argv
 from argparse import ArgumentParser
-from pydantic_settings import BaseSettings
-from functools import lru_cache
 from dotenv import load_dotenv
 from enum import Enum
+from functools import lru_cache
 from matplotlib.colors import TABLEAU_COLORS
+from os import path, getcwd, environ, makedirs
+from pydantic_settings import BaseSettings
+from sys import argv
 
 
 class AppSettings(BaseSettings):
@@ -58,6 +58,7 @@ class RedisSettings(BaseSettings):
     redis_username: str = ''
     redis_password: str = '123456'
     redis_database: int = 2
+    redis_ttl_seconds: int = 7 * 24 * 3600  # 默认保留7天
 
 
 class UploadSettings:
@@ -85,6 +86,7 @@ class UploadSettings:
     ]
     DOWNLOAD_PREFIX = '/download'
     DOWNLOAD_PATH = 'EAViz Files/download_path'
+    STREAM_WINDOW_SIZE_SECOND = 30
 
     def __init__(self):
         if not path.exists(self.UPLOAD_PATH):
@@ -114,6 +116,7 @@ class RedisInitKeyConfig:
     # full key：password_error_count:user_name | value：password_error_counted
     PASSWORD_ERROR_COUNT = {'key': 'password_error_count', 'remark': '密码错误次数'}
     SMS_CODE = {'key': 'sms_code', 'remark': '短信验证码'}  # full key：sms_code:session_id | value：sms_code
+    VIDEO_CLEANUP = {'key': 'video_cleanup', 'remark': '视频定时清理'}
 
 
 class EAVizSettings:

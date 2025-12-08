@@ -1,17 +1,15 @@
+from datetime import datetime
 from fastapi import status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.encoders import jsonable_encoder
-from typing import Any, Dict, Optional
 from pydantic import BaseModel
-from datetime import datetime
+from typing import Any, Dict, Optional
 
 
 class ResponseUtil:
     """
     响应工具类
     """
-
-    STREAM_WINDOW_SIZE = 30  # 秒
 
     @classmethod
     def success(cls, msg: str = '操作成功', data: Optional[Any] = None, rows: Optional[Any] = None,

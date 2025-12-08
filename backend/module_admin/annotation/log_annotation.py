@@ -1,18 +1,19 @@
-from functools import wraps, lru_cache
+from datetime import datetime
 from fastapi import Request
 from fastapi.responses import JSONResponse, ORJSONResponse, UJSONResponse
+from functools import wraps, lru_cache
 from inspect import getfile
-from os import path, getcwd
 from json import loads, dumps
-from time import time
-from datetime import datetime
+from os import path, getcwd
 from requests import get
-from user_agents import parse
+from time import time
 from typing import Optional
-from module_admin.service.login_service import LoginService
-from module_admin.service.log_service import OperationLogService, LoginLogService
-from module_admin.entity.vo.log_vo import OperLogModel, LogininforModel
+from user_agents import parse
+
 from config.env import AppConfig
+from module_admin.entity.vo.log_vo import OperLogModel, LogininforModel
+from module_admin.service.log_service import OperationLogService, LoginLogService
+from module_admin.service.login_service import LoginService
 
 
 def log_decorator(title: str, business_type: int, log_type: Optional[str] = 'operation'):
@@ -53,8 +54,8 @@ def log_decorator(title: str, business_type: int, log_type: Optional[str] = 'ope
 
     :param log_type: 日志类型（login表示登录日志，为空表示为操作日志）
     :param title: 当前日志装饰器装饰的模块标题
-    :param business_type: 业务类型（0其它 1新增 2修改 3删除 4授权 5导出 6导入 7强退 8生成代码 9清空数据 10获取EDF数据
-                                  11分析ESCSD 12分析AD 13分析SpiD 14分析SRD 15分析VD）
+    :param business_type: 业务类型（0其它 1新增 2修改 3删除 4授权 5导出 6导入 7强退 8生成代码 9清空数据 10获取EDF数据 11获取视频数据
+                                  12分析ESCSD 13分析AD 14分析SpiD 15分析SRD 16分析VD）
     """
 
     def decorator(func):  # 装饰器函数 decorator，接收一个函数 func

@@ -1,12 +1,13 @@
-from os import path
-from config.env import EAVizConfig
-from typing import List, Callable, Optional, Dict, Any
-from threading import Lock
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from cv2 import CAP_PROP_FRAME_COUNT, CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, resize, VideoWriter, VideoCapture
+from os import path
+from threading import Lock
 from torch import device
-from eaviz.VD.Pre_videodata import LoadVideos
+from typing import List, Callable, Optional, Dict, Any
+
+from config.env import EAVizConfig
 from eaviz.VD.api import Colors, annotating_box, actionRecognition, non_max_suppression, scale_coords
+from eaviz.VD.Pre_videodata import LoadVideos
 from utils.log_util import logger
 
 cfg = EAVizConfig.VDConfig
@@ -22,18 +23,24 @@ class VDProcessor:
     def __init__(self,
                  detect_model=None,
                  action_model=None,
-                 progress_callback: Optional[Callable] = None):
+                 progress_callback: Optional[Callable] = None,
+                 conf_thres: float = cfg.CONF_THRES,
+                 iou_thres: float = cfg.IOU_THRES):
         """
         初始化VD处理器
-        
+
         Args:
             detect_model: 检测模型
             action_model: 动作识别模型
             progress_callback: 进度回调函数，接收(percent, video_path)参数
+            conf_thres: 置信度阈值
+            iou_thres: IoU阈值
         """
         self.detectModel = detect_model
         self.actionModel = action_model
         self.progress_callback = progress_callback
+        self.conf_thres = float(conf_thres)
+        self.iou_thres = float(iou_thres)
 
         self.device = device(cfg.DEVICE)
         self.color = Colors()
@@ -78,7 +85,7 @@ class VDProcessor:
     def _detect(self, img, img0, last_box):
         """执行目标检测"""
         pred, featuremap = self.detectModel(img, augment=False, visualize=False)
-        pred = non_max_suppression([pred[0], pred[2]], cfg.CONF_THRES, cfg.IOU_THRES, cfg.CLASSES, cfg.AGNOSTIC_NMS,
+        pred = non_max_suppression([pred[0], pred[2]], self.conf_thres, self.iou_thres, cfg.CLASSES, cfg.AGNOSTIC_NMS,
                                    max_det=cfg.MAX_DET)
 
         if pred is not None and len(pred) > 0:
@@ -345,7 +352,9 @@ class VDProcessor:
 
         # 限制并发数
         workers = min(max_workers, len(video_paths))
-        results = []
+        # 为了保证返回结果顺序与传入的video_paths顺序一致，
+        # 使用一个字典临时保存结果，最后按video_paths重建列表
+        results_map: Dict[str, Dict[str, Any]] = {}
         with ThreadPoolExecutor(max_workers=workers) as executor:
             # 提交所有任务
             future_to_video = {
@@ -353,17 +362,31 @@ class VDProcessor:
                 for video_path in video_paths
             }
 
-            # 收集结果
-            for future in as_completed(future_to_video):
-                video_path = future_to_video[future]
+            # 收集结果（注意：as_completed返回的顺序是“完成顺序”，不是提交顺序）
+            for future in as_completed(future_to_video):  # 获取线程池里已经完成的任务
+                video_path = future_to_video[
+                    future]  # future（key）：executor.submit(self.process_video, video_path, output_adr)
                 try:
-                    result = future.result()
-                    results.append(result)
+                    # 使用video_path作为key缓存结果
+                    results_map[video_path] = future.result()
                 except Exception as e:
-                    results.append({
+                    results_map[video_path] = {
                         'success': False,
                         'video_path': video_path,
                         'message': f'处理异常: {str(e)}'
-                    })
+                    }
 
-        return results
+        # 按传入的video_paths顺序构建结果列表，确保与前端/调用方的文件顺序一一对应
+        ordered_results: List[Dict[str, Any]] = []
+        for vp in video_paths:
+            if vp in results_map:
+                ordered_results.append(results_map[vp])
+            else:
+                # 理论上不会发生，仅作为防御性代码
+                ordered_results.append({
+                    'success': False,
+                    'video_path': vp,
+                    'message': '未获取到该视频的处理结果'
+                })
+
+        return ordered_results

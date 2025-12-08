@@ -1,12 +1,13 @@
-from fastapi import Request, BackgroundTasks
-from os import path, makedirs
-from fastapi import UploadFile
 from datetime import datetime
+from fastapi import Request, BackgroundTasks, UploadFile
+from os import path, makedirs
+from pathlib import Path
+
 from config.env import UploadConfig
 from module_admin.entity.vo.common_vo import *
-from utils.upload_util import UploadUtil
 from utils.edf_util import EdfUtil
 from utils.log_util import logger
+from utils.upload_util import UploadUtil
 
 
 class CommonService:
@@ -135,3 +136,33 @@ class CommonService:
         else:
             result = dict(is_success=True, result=UploadUtil.generate_file(filepath), message='下载成功')
         return CrudResponseModel(**result)
+
+    @classmethod
+    def make_static_url(cls, request: Request, abs_path: str, config_path: str) -> str:
+        """
+        将绝对路径转换为静态URL
+        支持DOWNLOAD_PATH和UPLOAD_PATH下的文件
+        """
+        try:
+            p = Path(abs_path).resolve()  # xxx/EAViz Files/download_path/ESC_SD/ESC/res/res.png
+            base_p = Path(config_path).resolve()  # EAViz Files/download_path
+            try:
+                rel_p = p.relative_to(base_p).as_posix()  # ESC_SD/ESC/res/res.png
+                root_p = request.scope.get("root_path", "")  # /dev-api 或 ""
+                prefix = None
+                if config_path == UploadConfig.DOWNLOAD_PATH:
+                    prefix = UploadConfig.DOWNLOAD_PREFIX.rstrip("/")  # /download
+                elif config_path == UploadConfig.UPLOAD_PATH:
+                    prefix = UploadConfig.UPLOAD_PREFIX.rstrip("/")  # /profile
+                if not prefix:
+                    raise ValueError
+                # e.g.
+                # backend return: /dev-api/download/VD/res/2025/12/08/3_20251208115119A059.mp4
+                # frontend visit: http://localhost:9099/download/VD/res/2025/12/08/3_20251208115119A059.mp4
+                return f"{root_p}{prefix}/{rel_p}"  # /dev-api/download/ESC_SD/ESC/res/res.png
+            except ValueError:
+                logger.error(f"文件路径不在预期的目录下: abs_path: {abs_path}, config_path: {config_path}")
+                return ""
+        except Exception as e:
+            logger.error(f"无法转换路径为URL: abs_path: {abs_path}, config_path: {config_path}, 错误: {e}")
+            return ""

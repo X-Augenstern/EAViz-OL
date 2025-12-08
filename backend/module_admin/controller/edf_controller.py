@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, File, Body
+from os import remove
+
 from config.get_db import get_db
-from module_admin.service.login_service import LoginService, CurrentUserModel
-from module_admin.service.common_service import *
-from module_admin.service.edf_service import *
-from utils.response_util import *
-from utils.log_util import *
-from utils.page_util import PageResponseModel
 from module_admin.annotation.log_annotation import log_decorator
 from module_admin.aspect.interface_auth import CheckUserInterfaceAuth
-from os import path, remove
+from module_admin.service.common_service import *
+from module_admin.service.edf_service import *
+from module_admin.service.login_service import LoginService, CurrentUserModel
 from utils.common_util import data2bytes_response
+from utils.log_util import *
+from utils.page_util import PageResponseModel
+from utils.response_util import *
 
 edfController = APIRouter(prefix='/system/edf', dependencies=[Depends(LoginService.get_current_user)])
 

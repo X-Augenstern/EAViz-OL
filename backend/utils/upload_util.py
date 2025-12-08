@@ -1,7 +1,8 @@
-from random import randint
-from os import remove, path
-from fastapi import UploadFile
 from datetime import datetime
+from fastapi import UploadFile
+from os import remove, path
+from random import randint
+
 from config.env import UploadConfig
 
 
@@ -9,6 +10,7 @@ class UploadUtil:
     """
     上传工具类
     """
+
     @classmethod
     def generate_random_number(cls):
         """

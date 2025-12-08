@@ -47,15 +47,32 @@
       <!-- 第二步：设置参数 -->
       <el-step title="设置分析参数">
         <template #description>
-          <el-form :model="analyseParam" label-width="0">
-            <div style="display: flex; align-items: center; height: 32px">
-              <el-text style="margin-right: 12px; white-space: nowrap"
-                >是否保存分析结果（无痕分析）：</el-text
-              >
-              <el-switch
-                v-model="analyseParam.saveOutput"
-                :disabled="stepDisabled.step2"
-              />
+          <el-form label-width="90px" class="vd-param-form">
+            <div class="vd-param-row">
+              <el-form-item label="Confidence">
+                <el-input-number
+                  v-model="confThres"
+                  :min="0"
+                  :max="1"
+                  :step="0.01"
+                  :precision="2"
+                  :disabled="loading || !selectedVideoFiles.length"
+                  controls-position="right"
+                  style="width: 160px"
+                />
+              </el-form-item>
+              <el-form-item label="IoU" style="margin-left: 40px">
+                <el-input-number
+                  v-model="iouThres"
+                  :min="0"
+                  :max="1"
+                  :step="0.01"
+                  :precision="2"
+                  :disabled="loading || !selectedVideoFiles.length"
+                  controls-position="right"
+                  style="width: 160px"
+                />
+              </el-form-item>
             </div>
           </el-form>
           <div class="empty-line"></div>
@@ -244,7 +261,7 @@
 </template>
 
 <script setup name="VD">
-import { reactive, ref, computed, getCurrentInstance, nextTick } from "vue";
+import { ref, computed, getCurrentInstance, nextTick } from "vue";
 import { eavizItemsIdx } from "../../../eaviz/config";
 import { getToken } from "@/utils/auth";
 import { Upload, VideoPlay } from "@element-plus/icons-vue";
@@ -255,6 +272,9 @@ const itemIdx = eavizItemsIdx.vd;
 const loading = ref(false);
 const percentage = ref(0);
 const analysisCompleted = ref(false);
+// 检测参数（默认值与后端VDConfig保持一致）
+const confThres = ref(0.25);
+const iouThres = ref(0.45);
 const selectedVideoFiles = ref([]); // 保存选中的视频文件对象列表
 const outputVideoUrl = ref("");
 const actionResults = ref([]);
@@ -272,23 +292,16 @@ const headers = ref({
   Authorization: "Bearer " + getToken(),
 });
 
-// 分析参数
-const analyseParam = reactive({
-  saveOutput: false, // 默认不保存（无痕分析）
-});
-
 // 步骤状态
 const activeStep = computed(() => {
-  if (!selectedVideoFiles.value.length) return 0;
-  if (analysisCompleted.value) return 3;
-  if (loading.value) return 2;
-  return 1;
+  // 与其他分析模块保持一致：
+  // 1：初始高亮第一步（上传）
+  // 2：上传完成，当前在第二步（设置参数）
+  // 3：开始分析 / 分析完成，当前在第三步
+  if (!selectedVideoFiles.value.length) return 1;
+  if (loading.value || analysisCompleted.value) return 3;
+  return 2;
 });
-
-const stepDisabled = computed(() => ({
-  step2: !selectedVideoFiles.value.length,
-  step3: !selectedVideoFiles.value.length || loading.value,
-}));
 
 // 获取文件名
 function getFileName(path) {
@@ -357,6 +370,17 @@ function handleAnalyse() {
     return;
   }
 
+  // 参数边界保护（0~1）
+  const clamp01 = (v) => {
+    const num = Number(v);
+    if (Number.isNaN(num)) return 0;
+    if (num < 0) return 0;
+    if (num > 1) return 1;
+    return Number(num.toFixed(2));
+  };
+  confThres.value = clamp01(confThres.value);
+  iouThres.value = clamp01(iouThres.value);
+
   loading.value = true;
   percentage.value = 10;
   analysisCompleted.value = false;
@@ -370,7 +394,8 @@ function handleAnalyse() {
   selectedVideoFiles.value.forEach((item) => {
     formData.append("video_files", item.file);
   });
-  formData.append("save_output", analyseParam.saveOutput);
+  formData.append("conf_thres", confThres.value);
+  formData.append("iou_thres", iouThres.value);
 
   // 使用request工具上传文件
   request({
@@ -566,6 +591,18 @@ function formatDuration(seconds) {
 .card-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+.vd-param-form {
+  :deep(.el-form-item__label) {
+    color: #409eff;
+    font-weight: 600;
+  }
+}
+
+.vd-param-row {
+  display: flex;
   align-items: center;
 }
 
