@@ -1,18 +1,19 @@
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.events import EVENT_ALL
+from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.jobstores.redis import RedisJobStore
-from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.events import EVENT_ALL
-from json import loads, dumps
 from datetime import datetime, timedelta
+from importlib import import_module
+from json import loads, dumps
+
 from config.database import engine, SQLALCHEMY_DATABASE_URL, SessionLocal
 from config.env import RedisConfig
-from module_admin.service.job_log_service import JobLogService, JobLogModel
 from module_admin.dao.job_dao import Session, JobDao
+from module_admin.service.job_log_service import JobLogService, JobLogModel
 from utils.log_util import logger
-import module_task
 
 
 # 任务调度器(Scheduler)：配置作业存储器和执行器可以在调度器中完成，例如添加、修改和移除作业。
@@ -24,6 +25,7 @@ class MyCronTrigger(CronTrigger):
     """
     重写Cron定时
     """
+
     @classmethod
     def from_crontab(cls, expr, timezone=None):
         """
@@ -33,7 +35,10 @@ class MyCronTrigger(CronTrigger):
         3: ?: day = None | W: 查找最近的工作日 | L -> last
         4: month
         5: L: day = last | ?/L: week = None | #: 转为整数 | week | #: day_of_week = 转为整数-1 | day_of_week = None
-        6: year
+        6: year (optional)
+
+        0 * * * * ?：每分钟执行一次
+        0 0 3 * * ?：每天3点执行一次
         """
         values = expr.split()
         if len(values) != 6 and len(values) != 7:
@@ -114,6 +119,7 @@ class SchedulerUtil:
     """
     定时任务相关方法
     """
+
     @classmethod
     async def init_system_scheduler(cls, query_db: Session = SessionLocal()):
         """
@@ -151,17 +157,35 @@ class SchedulerUtil:
 
         return query_job
 
+    @staticmethod
+    def _resolve_callable(invoke_target: str):
+        """
+        将字符串形式的调用目标解析为可调用对象，避免使用 eval
+        格式示例：module_task.video_cleanup.job
+        """
+        if not invoke_target or "." not in invoke_target:
+            raise ValueError(f"无效的invoke_target: {invoke_target}")
+        module_path, func_name = invoke_target.rsplit(".", 1)
+        module = import_module(module_path)
+        func = getattr(module, func_name, None)
+        if func is None:
+            raise AttributeError(f"在模块 {module_path} 中未找到函数 {func_name}")
+        return func
+
     @classmethod
     def add_scheduler_job(cls, job_info):
         """
         根据输入的任务对象信息添加任务
         :param job_info: 任务对象信息
         """
+        func = cls._resolve_callable(job_info.invoke_target)
+        job_args = job_info.job_args.split(',') if job_info.job_args else None
+        job_kwargs = loads(job_info.job_kwargs) if job_info.job_kwargs else None
         scheduler.add_job(
-            func=eval(job_info.invoke_target),  # 任务在调度时实际执行的函数
+            func=func,  # 任务在调度时实际执行的函数
             trigger=MyCronTrigger.from_crontab(job_info.cron_expression),  # crontab
-            args=job_info.job_args.split(',') if job_info.job_args else None,  # 任务函数的位置参数
-            kwargs=loads(job_info.job_kwargs) if job_info.job_kwargs else None,  # 任务函数的关键字参数
+            args=job_args,  # 任务函数的位置参数
+            kwargs=job_kwargs,  # 任务函数的关键字参数
             id=str(job_info.job_id),  # 任务的唯一标识符
             name=job_info.job_name,  # 任务的名称
             # 设置一个极大的失火宽限时间（使得任务不会因错过调度时间而被丢弃）
@@ -179,13 +203,16 @@ class SchedulerUtil:
         :param job_info: 任务对象信息
         :return:
         """
+        func = cls._resolve_callable(job_info.invoke_target)
+        job_args = job_info.job_args.split(',') if job_info.job_args else None
+        job_kwargs = loads(job_info.job_kwargs) if job_info.job_kwargs else None
         scheduler.add_job(
-            func=eval(job_info.invoke_target),
+            func=func,
             # 向调度器添加任务。这个任务可以是周期性的（通过 cron 或 interval 触发器），也可以是一次性的（通过 date 触发器）
             trigger='date',  # 这是一个一次性任务
             run_date=datetime.now() + timedelta(seconds=1),  # 设置任务的运行时间为当前时间之后的一秒
-            args=job_info.job_args.split(',') if job_info.job_args else None,
-            kwargs=loads(job_info.job_kwargs) if job_info.job_kwargs else None,  # Deserialize
+            args=job_args,
+            kwargs=job_kwargs,  # Deserialize
             id=str(job_info.job_id),
             name=job_info.job_name,
             misfire_grace_time=1000000000000 if job_info.misfire_policy == '3' else None,

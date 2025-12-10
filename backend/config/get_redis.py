@@ -1,16 +1,21 @@
 from redis import asyncio as aioredis
-from utils.log_util import logger
-from config.env import RedisConfig
-from config.database import SessionLocal
+from redis import Redis as SyncRedis, ConnectionPool as SyncConnectionPool
 from redis.exceptions import AuthenticationError, TimeoutError, RedisError
-from module_admin.service.dict_service import DictDataService
+
+from config.database import SessionLocal
+from config.env import RedisConfig
 from module_admin.service.config_service import ConfigService
+from module_admin.service.dict_service import DictDataService
+from utils.log_util import logger
+
+_SYNC_POOL = None  # 懒加载同步连接池，供后台任务等同步场景使用
 
 
 class RedisUtil:
     """
     Redis相关类方法，可以在不需要创建类的实例的情况下调用。
     """
+
     @classmethod
     async def create_redis_pool(cls) -> aioredis.Redis:
         """
@@ -72,3 +77,21 @@ class RedisUtil:
         await ConfigService.init_cache_sys_config_services(session, redis)
 
         session.close()
+
+    @staticmethod
+    def get_sync_redis_client() -> SyncRedis:
+        """
+        获取同步Redis客户端（使用全局连接池）
+        适用于APScheduler等无request上下文的同步任务
+        """
+        global _SYNC_POOL
+        if _SYNC_POOL is None:
+            _SYNC_POOL = SyncConnectionPool(
+                host=RedisConfig.redis_host,
+                port=RedisConfig.redis_port,
+                username=RedisConfig.redis_username,
+                password=RedisConfig.redis_password,
+                db=RedisConfig.redis_database,
+                decode_responses=True,
+            )
+        return SyncRedis(connection_pool=_SYNC_POOL)

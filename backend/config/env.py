@@ -52,13 +52,31 @@ class DataBaseSettings(BaseSettings):
 class RedisSettings(BaseSettings):
     """
     Redis配置
+
+    Redis Key 的 TTL 确实要比业务保留时间多设一段「缓冲时间」（比如多 1 天），
+    核心目的是避免因「时间差」或「任务执行延迟」导致 Redis Key 先过期消失，进而无法精准清理视频文件。
+
+    一、为什么必须给 Redis Key 留缓冲时间？
+    代码逻辑是「依赖 Redis Key 记录视频信息，定时任务扫描 Redis Key 来清理视频」，
+    如果 Redis Key 和视频的过期时间完全一致（都是 7 天），会出现两个致命问题：
+
+    1. 定时任务执行时差：定时任务不是「实时触发」的（比如每天凌晨 3 点跑），
+    如果视频刚好到 7 天过期，而 Redis Key 在任务执行前就过期被自动删除了，那么这个视频就会脱离 Redis 的精准管控，
+    只能靠兜底的_cleanup_files_by_mtime清理（兜底逻辑有遗漏风险，比如文件修改时间异常）。
+
+    2. 过期时间的「精度差」：Redis 的过期删除是「惰性删除 + 定期删除」，不是毫秒级精准过期；
+    视频文件的保留时间是按「创建 / 修改时间」计算，两者的时间基准可能存在微小偏差，容易导致 Key 先消失。
+
+    任务执行失败兜底：如果某次定时任务执行失败（比如服务器重启、Redis 连接异常），多留 1 天缓冲时间，下次任务还能扫到这个 Key，避免视频变成永久残留文件。
     """
     redis_host: str = '127.0.0.1'
     redis_port: int = 6379
     redis_username: str = ''
     redis_password: str = '123456'
     redis_database: int = 2
-    redis_ttl_seconds: int = 7 * 24 * 3600  # 默认保留7天
+    video_file_ttl_seconds: int = 7 * 24 * 3600  # 默认业务保留期是7天
+    redis_key_ttl_buffer_seconds: int = 1 * 24 * 3600
+    redis_key_ttl_seconds: int = video_file_ttl_seconds + redis_key_ttl_buffer_seconds  # 兜底，防止键永远不清
 
 
 class UploadSettings:

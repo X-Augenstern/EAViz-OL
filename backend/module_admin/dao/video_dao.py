@@ -61,6 +61,17 @@ class VideoDao:
             return None
 
         db_video = SysVideo(**video.model_dump())
+
+        # SQLAlchemy 中 Session.add() 仅将对象加入会话（标记为「pending」状态），但不会立即和数据库交互；而 Session.flush() 会：
+        # 把会话中待执行的 INSERT/UPDATE/DELETE 语句发送到数据库执行（但不提交事务）；
+        # 若表的主键（video_id）是数据库自增类型（如 MySQL 的 AUTO_INCREMENT、PostgreSQL 的 SERIAL），数据库执行 INSERT 后会生成主键值，SQLAlchemy 会自动将这个值回填到 db_video 对象的 video_id 属性
+        # 简单说：add() 是「标记要插入」，flush() 是「真正执行插入并拿回主键」。
+
+        # 如果 video_id 是手动赋值（如 UUID、业务自定义 ID），则 flush() 不会回填（因为插入前就已有值）；如果是数据库生成的自增 ID，flush() 后必然会回填。
+
+        # flush() 不等于 commit()：flush() 仅执行 SQL 但未提交事务，若后续调用 db.rollback()，数据库中不会保留这条记录，但 db_video 上的 video_id 仍会存在（只是数据库侧已回滚）；
+        # 若 flush() 失败（如约束冲突、数据库异常），会抛出异常，此时 video_id 不会被回填；
+        # 若仅调用 db.add(db_video) 而不 flush()/commit()，video_id 仍为 None（因为未和数据库交互）。
         db.add(db_video)
         db.flush()
 

@@ -258,9 +258,8 @@ async def analyse_vd_by_video_path(
                 while chunk := await video_file.read(1024 * 1024 * 10):  # 每次读取10MB
                     tmp_file.write(chunk)
             tmp_files.append((tmp_path, video_file.filename))
-            logger.info(
-                f"analysis_controller:analyse_vd_by_video_path 视频文件已保存到临时文件: {tmp_path}, 原始文件名: {video_file.filename}, "
-                f"文件大小: {path.getsize(tmp_path)} bytes")
+            logger.info(f"视频文件已保存到临时文件: {tmp_path}, 原始文件名: {video_file.filename}, "
+                        f"文件大小: {path.getsize(tmp_path)} bytes")
 
         # 解析并校验检测阈值（限制在0~1范围内）
         def _clamp_01(value: float, default: float) -> float:
@@ -276,16 +275,13 @@ async def analyse_vd_by_video_path(
 
         conf_thres = _clamp_01(conf_thres, EAVizConfig.VDConfig.CONF_THRES)
         iou_thres = _clamp_01(iou_thres, EAVizConfig.VDConfig.IOU_THRES)
-        logger.info(
-            f"analysis_controller:analyse_vd_by_video_path VD检测阈值: conf_thres={conf_thres}, iou_thres={iou_thres}")
+        logger.info(f"VD检测阈值: conf_thres={conf_thres}, iou_thres={iou_thres}")
 
         # 统一保存处理后视频到 VD/res 目录
         output_adr = EAVizConfig.AddressConfig.get_vd_adr("res")
-        logger.info(
-            f"analysis_controller:analyse_vd_by_video_path VD处理结果将保存到目录: {output_adr}, 目录是否存在: {path.exists(output_adr)}")
+        logger.info(f"VD处理结果将保存到目录: {output_adr}, 目录是否存在: {path.exists(output_adr)}")
         video_paths = [t[0] for t in tmp_files]
-        logger.info(
-            f"analysis_controller:analyse_vd_by_video_path 开始处理VD视频分析, 共 {len(video_paths)} 个视频, output_adr={output_adr}")
+        logger.info(f"开始处理VD视频分析, 共 {len(video_paths)} 个视频, output_adr={output_adr}")
 
         # 获取模型
         method = EAVizConfig.ModelConfig.VD_MODEL[0]
@@ -294,7 +290,7 @@ async def analyse_vd_by_video_path(
         detect_model = request.app.state.models.get(detect_model)
         action_model = request.app.state.models.get(action_model)
         if not detect_model or not action_model:
-            logger.error(f"analysis_controller:analyse_vd_by_video_path 对应的预训练模型未加载: {method}")
+            logger.error(f"对应的预训练模型未加载: {method}")
             return ResponseUtil.error(msg=f"预训练模型未加载: {method}")
 
         # 创建VD处理器（使用本次请求指定的阈值）
@@ -314,7 +310,7 @@ async def analyse_vd_by_video_path(
             output_adr,
             EAVizConfig.VDConfig.VD_EXECUTOR_MAX_WORKERS
         )
-        logger.info(f"analysis_controller:analyse_vd_by_video_path VD视频批量处理完成，共 {len(results)} 个结果")
+        logger.info(f"VD视频批量处理完成，共 {len(results)} 个结果")
 
         # 处理VD分析结果
         videos_data = []
@@ -323,8 +319,7 @@ async def analyse_vd_by_video_path(
             success = result.get('success', False)
             if not success:
                 all_success = False
-                logger.error(
-                    f"analysis_controller:analyse_vd_by_video_path 视频处理失败: {original_name}, message={result.get('message')}")
+                logger.error(f"视频处理失败: {original_name}, message={result.get('message')}")
 
             output_url = None
             output_path = result.get('output_path')
@@ -332,20 +327,15 @@ async def analyse_vd_by_video_path(
                 # 保存处理后的视频文件（重命名并保存到VD/res目录）
                 save_res = VideoService.save_processed_video_services(output_path, original_name, output_adr)
                 if not save_res.is_success:
-                    logger.error(
-                        f"analysis_controller:analyse_vd_by_video_path 保存处理后的视频文件失败: {save_res.message}")
+                    logger.error(f"保存处理后的视频文件失败: {save_res.message}")
                 else:
                     # 更新output_path为新的保存路径
                     output_path = save_res.result.file_path
                     # 生成URL
                     output_url = CommonService.make_static_url(request, output_path, download_path)
-                    logger.info(
-                        f"analysis_controller:analyse_vd_by_video_path 处理后的视频已保存: {output_path}，生成的视频URL: {output_url}")
+                    logger.info(f"处理后的视频已保存: {output_path}，生成的视频URL: {output_url}")
                     if not output_url:
-                        logger.warning(
-                            f"analysis_controller:analyse_vd_by_video_path 无法生成视频URL，路径: {output_path}")
-
-                    await VideoService.cache_processed_video_services(request, output_path, output_url, original_name)
+                        logger.warning(f"无法生成视频URL，路径: {output_path}")
 
                     # 保存视频信息到数据库（与EDF的处理方式一致）
                     try:
@@ -381,16 +371,23 @@ async def analyse_vd_by_video_path(
                         # 保存到数据库（与EDF的处理方式一致）
                         add_video_model = AddVideoModel(videoList=[video_model], userId=current_user.user.user_id)
                         add_result = VideoService.add_video_services(query_db, add_video_model)
+                        video_id = None
                         if add_result.is_success:
-                            logger.info(
-                                f"analysis_controller:analyse_vd_by_video_path 视频信息已保存到数据库: {video_name}")
+                            video_ids = []
+                            if add_result.result and isinstance(add_result.result, dict):
+                                video_ids = add_result.result.get("video_ids") or []
+                            if video_ids:
+                                video_id = video_ids[0]
+                            logger.info(f"视频信息已保存到数据库: {video_name}, video_id={video_id}")
                         else:
-                            logger.warning(
-                                f"analysis_controller:analyse_vd_by_video_path 保存视频信息到数据库失败: {add_result.message}")
+                            logger.warning(f"保存视频信息到数据库失败: {add_result.message}")
+
+                        # 缓存处理后视频到Redis，带上video_id便于清理时同步删除DB记录
+                        await VideoService.cache_processed_video_services(request, output_path, output_url,
+                                                                          original_name, video_id)
                     except Exception as e:
-                        logger.error(
-                            f"analysis_controller:analyse_vd_by_video_path 保存视频信息到数据库时出错: {str(e)}")
-                        logger.exception(f"analysis_controller:analyse_vd_by_video_path {e}")
+                        logger.error(f"保存视频信息到数据库时出错: {str(e)}")
+                        logger.exception(e)
 
             videos_data.append({
                 "video_name": original_name,
@@ -407,7 +404,7 @@ async def analyse_vd_by_video_path(
         })
 
     except Exception as e:
-        logger.exception(f"analysis_controller:analyse_vd_by_video_path {e}")
+        logger.exception(e)
         return ResponseUtil.error(msg=str(e))
     finally:
         # 删除所有临时文件
@@ -415,8 +412,6 @@ async def analyse_vd_by_video_path(
             if tmp_path and path.exists(tmp_path):
                 try:
                     remove(tmp_path)
-                    logger.info(
-                        f"analysis_controller:analyse_vd_by_video_path 临时文件已删除: {tmp_path}, 原始文件名: {original_name}")
+                    logger.info(f"临时文件已删除: {tmp_path}, 原始文件名: {original_name}")
                 except Exception as e:
-                    logger.warning(
-                        f"analysis_controller:analyse_vd_by_video_path 删除临时文件失败: {tmp_path}, 错误: {str(e)}")
+                    logger.warning(f"删除临时文件失败: {tmp_path}, 错误: {str(e)}")

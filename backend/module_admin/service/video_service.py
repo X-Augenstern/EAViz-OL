@@ -3,7 +3,6 @@ from json import dumps
 from os import path, makedirs, rename
 from shutil import move
 from starlette.requests import Request
-from uuid import uuid4
 
 from config.env import EAVizConfig, UploadConfig, RedisConfig, RedisInitKeyConfig
 from module_admin.dao.video_dao import *
@@ -47,10 +46,11 @@ class VideoService:
     @classmethod
     def add_video_services(cls, query_db: Session, page_object: AddVideoModel):
         """
-        新增Video信息service
+        新增Video信息并返回新增的video_id service
         """
-        result = dict(is_success=True, message='')
+        result = dict(is_success=True, message='', result=None)
         messages = []
+        added_ids = []
         try:
             for video in page_object.video_list:
                 added_video = VideoDao.add_video_dao(query_db, video)
@@ -58,15 +58,18 @@ class VideoService:
                     result['is_success'] = False
                     messages.append(f'{video.video_name} 已存在')
                 else:
+                    # db.flush() 后 ORM 会在同一事务里拿到自增的 video_id 并回填到 added_video，不需要再额外查库
                     VideoDao.add_video_user_dao(query_db, VideoUserModel(videoId=added_video.video_id,
                                                                          userId=page_object.user_id))
                     messages.append(f'{video.video_name} 添加成功')
+                    added_ids.append(added_video.video_id)
             query_db.commit()
         except Exception as e:
             query_db.rollback()
             raise e
 
         result['message'] = ';'.join(messages)
+        result['result'] = dict(video_ids=added_ids) if added_ids else None
         return CrudResponseModel(**result)
 
     @classmethod
@@ -107,8 +110,7 @@ class VideoService:
         try:
             makedirs(save_path, exist_ok=True)
         except Exception as e:
-            logger.error(
-                f'VideoService:save_processed_video_services 创建VD/res目录失败: {save_path}, 错误: {str(e)}')
+            logger.error(f'创建VD/res目录失败: {save_path}, 错误: {str(e)}')
             return CrudResponseModel(is_success=False, message=f'创建VD/res目录失败: {str(e)}')
 
         # 获取原文件扩展名，如果没有则使用.mp4
@@ -138,11 +140,9 @@ class VideoService:
             else:
                 # 否则移动文件
                 move(processed_video_path, filepath)
-            logger.info(
-                f'VideoService:save_processed_video_services 处理后的视频文件已保存: {filepath}, 原始文件名: {original_filename}')
+            logger.info(f'处理后的视频文件已保存: {filepath}, 原始文件名: {original_filename}')
         except Exception as e:
-            logger.error(
-                f'VideoService:save_processed_video_services 保存处理后的视频文件失败: {processed_video_path} -> {filepath}, 错误: {str(e)}')
+            logger.error(f'保存处理后的视频文件失败: {processed_video_path} -> {filepath}, 错误: {str(e)}')
             return CrudResponseModel(is_success=False, message=f'保存视频文件失败: {str(e)}')
 
         result = CrudResponseModel(
@@ -163,7 +163,7 @@ class VideoService:
 
     @classmethod
     async def cache_processed_video_services(cls, request: Request, output_path: str, output_url: str,
-                                             original_name: str):
+                                             original_name: str, video_id: int):
         """
         将处理后的视频写入Redis，方便后续定期清理
         """
@@ -171,20 +171,19 @@ class VideoService:
         if not redis_client or not output_path:
             return
 
-        key = f"{RedisInitKeyConfig.VIDEO_CLEANUP.get('key')}:{uuid4()}"
-        ttl_seconds = getattr(RedisConfig, "redis_ttl_seconds", 7 * 24 * 3600)
-        ex = timedelta(seconds=ttl_seconds)
-        expire_at = (datetime.now(timezone.utc) + ex).isoformat()
+        key = f"{RedisInitKeyConfig.VIDEO_CLEANUP.get('key')}:{video_id}"
+        expire_at = (datetime.now(timezone.utc) + timedelta(seconds=RedisConfig.video_file_ttl_seconds)).isoformat()
         payload = {
             "path": output_path,
             "output_url": output_url,
             "video_name": original_name,
-            "expire_at": expire_at
+            "expire_at": expire_at,
+            "video_id": video_id
         }
         try:
-            await redis_client.set(key, dumps(payload), ex=ex)
-            logger.info(
-                f"VideoService:cache_processed_video_services 已缓存处理后视频到Redis, key={key}, ttl={ttl_seconds}s")
+            ttl_seconds = RedisConfig.redis_key_ttl_seconds
+            await redis_client.delete(key)  # 缓存时先删除旧Key，再设置新Key（避免重复）
+            await redis_client.set(key, dumps(payload), ex=ttl_seconds)
+            logger.info(f"已缓存处理后视频到Redis, key={key}, ttl={ttl_seconds / 3600 / 24}天")
         except Exception as e:
-            logger.warning(
-                f"VideoService:cache_processed_video_services 缓存处理后视频到Redis失败. key={key}, 错误: {e}")
+            logger.warning(f"缓存处理后视频到Redis失败. key={key}, 错误: {e}")

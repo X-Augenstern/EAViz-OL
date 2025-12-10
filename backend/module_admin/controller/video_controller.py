@@ -34,7 +34,7 @@ async def get_system_video_list(request: Request,
                 if isinstance(row, dict):
                     print("video_controller:get_system_video_list row is dict")
                     transform_video_path_2_url(request, row)
-        logger.info('video_controller:get_system_video_list 获取成功')
+        logger.info('获取成功')
         return ResponseUtil.success(model_content=video_page_query_result)
     except Exception as e:
         logger.exception(e)
@@ -52,7 +52,7 @@ async def query_detail_system_video(request: Request, video_id: int, query_db: S
         if isinstance(video_detail_result, dict):
             print("video_controller:query_detail_system_video video_detail_result is dict")
             transform_video_path_2_url(request, video_detail_result)
-        logger.info(f'video_controller:query_detail_system_video 获取video_id 为{video_id}的信息成功')
+        logger.info(f'获取video_id 为{video_id}的信息成功')
         return ResponseUtil.success(data=video_detail_result.model_dump(by_alias=True))
     except Exception as e:
         return ResponseUtil.error(msg=str(e))
@@ -73,7 +73,7 @@ async def query_detail_system_video(request: Request, video_user_page_query: Vid
                 if isinstance(row, dict):
                     print("video_controller:query_detail_system_video row is dict")
                     transform_video_path_2_url(request, row)
-        logger.info('video_controller:query_detail_system_video 获取成功')
+        logger.info('获取成功')
         return ResponseUtil.success(model_content=video_user_page_query_result)
     except Exception as e:
         return ResponseUtil.error(msg=str(e))
@@ -95,19 +95,19 @@ async def delete_system_video(request: Request, video_ids: str, query_db: Sessio
                     file_path = video_detail_result.video_path
                     if path.exists(file_path):
                         remove(file_path)
-                        logger.info(f'video_controller:delete_system_video 文件 {file_path} 删除成功')
+                        logger.info(f'文件 {file_path} 删除成功')
                     else:
-                        logger.warning(f'video_controller:delete_system_video 文件 {file_path} 不存在或已被删除')
+                        logger.warning(f'文件 {file_path} 不存在或已被删除')
                 else:
-                    logger.warning(f'video_controller:delete_system_video Video ID {video_id} 未找到')
+                    logger.warning(f'Video ID {video_id} 未找到')
 
             delete_video = DeleteVideoModel(videoIds=video_ids)
             delete_video_result = VideoService.delete_video_services(query_db, delete_video)
             if delete_video_result.is_success:
-                logger.info(f"video_controller:delete_system_video {delete_video_result.message}")
+                logger.info(delete_video_result.message)
                 return ResponseUtil.success(msg=delete_video_result.message)
             else:
-                logger.warning(f"video_controller:delete_system_video {delete_video_result.message}")
+                logger.warning(delete_video_result.message)
                 return ResponseUtil.failure(msg=delete_video_result.message)
         except Exception as e:
             logger.exception(e)
