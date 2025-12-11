@@ -1,5 +1,5 @@
 from datetime import time
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from module_admin.entity.do.video_do import *
@@ -39,6 +39,24 @@ class VideoDao:
                                  time(00, 00, 00)),
                 datetime.combine(datetime.strptime(query_object.end_time, '%Y-%m-%d'),
                                  time(23, 59, 59))))
+        # 分析结果查询：result_status='seizure'表示有发作，'normal'表示正常（无发作）
+        if query_object.result_status:
+            if query_object.result_status == 'seizure':
+                # 查询包含 "Seizure" 动作的视频
+                conditions.append(SysVideo.video_res.like('%"action": "Seizure"%'))
+            elif query_object.result_status == 'normal':
+                # 查询不包含 "Seizure" 动作的视频（有结果但无发作）
+                conditions.append(
+                    or_(
+                        SysVideo.video_res.is_(None),
+                        SysVideo.video_res == '',
+                        and_(
+                            SysVideo.video_res.isnot(None),
+                            SysVideo.video_res != '',
+                            ~SysVideo.video_res.like('%"action": "Seizure"%')
+                        )
+                    )
+                )
 
         query = (db.query(SysVideo)
                  .join(SysVideoUser, and_(SysVideo.video_id == SysVideoUser.video_id))

@@ -36,7 +36,7 @@
       <el-form-item label="上传用户" prop="uploadBy" v-if="userStore.id === 1">
         <el-input
           v-model="queryParams.uploadBy"
-          placeholder="请输入上传用户名称"
+          placeholder="请输入上传用户"
           clearable
           style="width: 240px"
           @keyup.enter="handleQuery"
@@ -313,7 +313,7 @@ const columns = ref([
   { key: 3, label: `采样时长`, visible: true },
   { key: 4, label: `有效通道`, visible: true },
   { key: 5, label: `有效通道数`, visible: true },
-  { key: 6, label: `上传者`, visible: true },
+  { key: 6, label: `上传用户`, visible: true },
   { key: 7, label: `上传时间`, visible: true },
 ]);
 

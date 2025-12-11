@@ -29,6 +29,7 @@ class VideoQueryModel(VideoModel):
     """
     begin_time: Optional[str] = None
     end_time: Optional[str] = None
+    result_status: Optional[str] = None  # 分析结果状态：'seizure'（发作）或 'normal'（正常）
 
 
 @as_query

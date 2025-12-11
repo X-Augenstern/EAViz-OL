@@ -17,6 +17,26 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
+      <el-form-item label="分析结果" prop="resultStatus">
+        <el-select
+          v-model="queryParams.resultStatus"
+          placeholder="请选择分析结果"
+          clearable
+          style="width: 240px"
+        >
+          <el-option label="发作" value="seizure" />
+          <el-option label="正常" value="normal" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="上传用户" prop="uploadBy">
+        <el-input
+          v-model="queryParams.uploadBy"
+          placeholder="请输入上传用户"
+          clearable
+          style="width: 240px"
+          @keyup.enter="handleQuery"
+        />
+      </el-form-item>
       <el-form-item label="生成时间" style="width: 308px">
         <el-date-picker
           v-model="dateRange"
@@ -301,8 +321,8 @@ const columns = ref([
   { key: 2, label: `大小`, visible: true },
   { key: 3, label: `时长`, visible: true },
   { key: 4, label: `分析结果`, visible: true },
-  { key: 5, label: `上传者`, visible: true },
-  { key: 6, label: `上传时间`, visible: true },
+  { key: 5, label: `上传用户`, visible: true },
+  { key: 6, label: `生成时间`, visible: true },
 ]);
 
 // 查询参数
@@ -311,6 +331,8 @@ const data = reactive({
     pageNum: 1,
     pageSize: 10,
     videoName: undefined,
+    uploadBy: undefined,
+    resultStatus: undefined,
   },
 });
 const queryParams = toRef(data, "queryParams");
