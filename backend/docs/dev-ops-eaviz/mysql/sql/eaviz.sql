@@ -259,7 +259,7 @@ insert into sys_menu
 values ('109', 'EDF管理', '1', '10', 'edf', 'system/edf/index', '', 1, 0, 'C', '0', '0', 'system:edf:list', 'clipboard',
         'admin', sysdate(), '', null, 'EDF管理菜单');
 insert into sys_menu
-values ('124', '视频管理', '1', '11', 'radio', 'system/video/index', '', 1, 0, 'C', '0', '0', 'system:video:list',
+values ('124', '视频管理', '1', '11', 'video', 'system/video/index', '', 1, 0, 'C', '0', '0', 'system:video:list',
         'radio',
         'admin', sysdate(), '', null, 'VD视频管理菜单');
 insert into sys_menu
