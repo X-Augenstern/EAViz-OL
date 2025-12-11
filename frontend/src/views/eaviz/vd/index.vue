@@ -3,6 +3,21 @@
     <el-steps :active="activeStep" direction="vertical" align-center>
       <!-- 第一步：上传视频 -->
       <el-step title="请上传要分析的视频（支持格式：MP4，20FPS）">
+        <template #title>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              width: 100%;
+            "
+          >
+            <span>请上传要分析的视频（支持格式：MP4，20FPS）</span>
+            <el-button type="info" plain icon="List" @click="handleViewHistory">
+              查看我的分析视频
+            </el-button>
+          </div>
+        </template>
         <template #description>
           <div style="margin-top: 16px">
             <el-upload
@@ -84,7 +99,7 @@
         <template #description>
           <el-button
             type="primary"
-            size="large"
+            style="margin-bottom: 5px"
             :disabled="!selectedVideoFiles.length || loading"
             :loading="loading"
             @click="handleAnalyse"
@@ -262,12 +277,14 @@
 
 <script setup name="VD">
 import { ref, computed, getCurrentInstance, nextTick } from "vue";
+import { useRouter } from "vue-router";
 import { eavizItemsIdx } from "../../../eaviz/config";
 import { getToken } from "@/utils/auth";
-import { Upload, VideoPlay } from "@element-plus/icons-vue";
+import { Upload, VideoPlay, List } from "@element-plus/icons-vue";
 import request from "@/utils/request";
 
 const { proxy } = getCurrentInstance();
+const router = useRouter();
 const itemIdx = eavizItemsIdx.vd;
 const loading = ref(false);
 const percentage = ref(0);
@@ -567,6 +584,11 @@ function formatDuration(seconds) {
     ).padStart(2, "0")}`;
   }
   return `${minutes}:${String(secs).padStart(2, "0")}`;
+}
+
+// 跳转到视频管理界面
+function handleViewHistory() {
+  router.push("/system/video");
 }
 </script>
 
