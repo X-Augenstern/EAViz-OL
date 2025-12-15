@@ -602,6 +602,8 @@ values ('2', '3');
 insert into sys_role_menu
 values ('2', '4');
 insert into sys_role_menu
+values ('2', '5');
+insert into sys_role_menu
 values ('2', '100');
 insert into sys_role_menu
 values ('2', '101');
@@ -799,6 +801,8 @@ insert into sys_role_menu
 values ('3', '3');
 insert into sys_role_menu
 values ('3', '4');
+insert into sys_role_menu
+values ('3', '5');
 insert into sys_role_menu
 values ('3', '109');
 insert into sys_role_menu
