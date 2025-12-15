@@ -47,7 +47,7 @@
           <a-card
             class="projectList"
             :style="{ marginBottom: '24px' }"
-            title="智能分析"
+            title="快捷导航"
             :bordered="false"
             :loading="false"
             :body-style="{ padding: 0 }"
