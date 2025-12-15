@@ -1,6 +1,6 @@
+from loguru import logger
 from os import path, getcwd, mkdir
 from time import strftime
-from loguru import logger
 
 log_path = path.join(getcwd(), 'logs')
 if not path.exists(log_path):

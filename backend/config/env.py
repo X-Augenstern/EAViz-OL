@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from enum import Enum
 from functools import lru_cache
 from matplotlib.colors import TABLEAU_COLORS
-from os import path, getcwd, environ, makedirs
+from os import path, getcwd, environ, makedirs, getenv
 from pydantic_settings import BaseSettings
 from sys import argv
 
@@ -418,6 +418,12 @@ class EAVizSettings:
         WARMSHAPE_FOR_ACTION_RECOGNITION = (1, 3, 60, 112, 112)
 
 
+class AgentSettings:
+    LITEMIND_AGENT_BASE_URL = getenv('LITEMIND_AGENT_BASE_URL', 'http://localhost:8123')
+    LITEMIND_AGENT_CHAT_ENDPOINT = getenv('LITEMIND_AGENT_CHAT_ENDPOINT', '/api/ai/liteMind/chat')
+    LITEMIND_AGENT_TIMEOUT = int(getenv('LITEMIND_AGENT_TIMEOUT', '300'))  # 默认300秒超时（SSE流式响应需要更长时间）
+
+
 class GetConfig:
     """
     获取配置
@@ -468,9 +474,21 @@ class GetConfig:
 
     @lru_cache()
     def get_eaviz_config(self):
+        """
+        获取EAViz配置
+        """
+        # 实例EAViz相关配置
         cfg = EAVizSettings()
         cfg.AddressConfig.setup()
         return cfg
+
+    @lru_cache()
+    def get_agent_config(self):
+        """
+        LiteMind-Agent服务地址配置
+        """
+        # 实例LiteMind-Agent相关配置
+        return AgentSettings()
 
     @staticmethod
     def parse_cli_args():
@@ -518,3 +536,5 @@ RedisConfig = get_config.get_redis_config()
 UploadConfig = get_config.get_upload_config()
 # EAViz配置
 EAVizConfig = get_config.get_eaviz_config()
+# LiteMind-Agent配置
+AgentConfig = get_config.get_agent_config()
