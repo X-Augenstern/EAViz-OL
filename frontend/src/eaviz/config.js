@@ -34,7 +34,7 @@ export const eavizItems = [
   {
     id: "02",
     title: "AD",
-    color: '#7FFF00',
+    color: '#FFD700',
     description: "Artifact Detection",
     // logoTxt: "A",
     href: "/eaviz/ad",
@@ -108,9 +108,10 @@ export const eavizItems = [
   },
   {
     id: "06",
-    title: "",
-    description: "To be added",
-    href: "",
+    title: "智慧助手",
+    color: '#90EE90',
+    description: "Medical Assistant & Web Search",
+    href: "/eaviz/agent",
     memberLink: "",
   },
 ];
