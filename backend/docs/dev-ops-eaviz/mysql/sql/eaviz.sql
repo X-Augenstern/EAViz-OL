@@ -213,6 +213,10 @@ create table sys_menu
 
 -- ----------------------------
 -- 初始化-菜单信息表数据
+-- 1. path：供前端动态生成相应路由，子菜单会基于父菜单路由拼接，比如escsd的路由就是父菜单path（eaviz）+自己的path（escsd） -> /eaviz/escsd
+-- 后端路由生成逻辑里，顶层 menu_type = 'C' 且 parent_id = 0 的菜单不会自动套上 Layout，会被当成一个“裸路由”直接 addRoute
+-- 要想既放在顶层、又正常使用 Layout/Sidebar，需要用“目录(M)+菜单(C)”两层的结构（这是 Ruoyi 前后端分离的习惯用法）。
+-- 2. component：供前端动态加载相应组件，比如escsd的组件是eaviz/escsd/index，对应前端组件路径为views/eaviz/escsd/index
 -- ----------------------------
 -- 一级菜单
 insert into sys_menu
@@ -228,8 +232,8 @@ insert into sys_menu
 values ('4', '智能分析', '0', '4', 'eaviz', null, '', 1, 0, 'M', '0', '0', '', 'guide', 'admin', sysdate(), '', null,
         '智能分析目录');
 insert into sys_menu
-values ('5', '智慧助手', '0', '5', 'agent', 'eaviz/agent/index', '', 1, 0, 'M', '0', '0', 'eaviz:agent:use', 'example',
-        'admin', sysdate(), '', null, '智慧助手目录');
+values ('5', '智慧助手', '0', '5', 'agent', null, '', 1, 0, 'M', '0', '0', '', 'example', 'admin', sysdate(), '', null,
+        '智慧助手目录');
 -- 二级菜单
 insert into sys_menu
 values ('100', '用户管理', '1', '1', 'user', 'system/user/index', '', 1, 0, 'C', '0', '0', 'system:user:list', 'user',
@@ -261,10 +265,6 @@ values ('108', '日志管理', '1', '9', 'log', '', '', 1, 0, 'M', '0', '0', '',
 insert into sys_menu
 values ('109', 'EDF管理', '1', '10', 'edf', 'system/edf/index', '', 1, 0, 'C', '0', '0', 'system:edf:list', 'clipboard',
         'admin', sysdate(), '', null, 'EDF管理菜单');
-insert into sys_menu
-values ('124', '视频管理', '1', '11', 'video', 'system/video/index', '', 1, 0, 'C', '0', '0', 'system:video:list',
-        'radio',
-        'admin', sysdate(), '', null, 'VD视频管理菜单');
 insert into sys_menu
 values ('110', '在线用户', '2', '1', 'online', 'monitor/online/index', '', 1, 0, 'C', '0', '0', 'monitor:online:list',
         'online', 'admin', sysdate(), '', null, '在线用户菜单');
@@ -307,6 +307,12 @@ values ('122', 'SRD', '4', '4', 'srd', 'eaviz/srd/index', '', 1, 0, 'C', '0', '0
 insert into sys_menu
 values ('123', 'VD', '4', '5', 'vd', 'eaviz/vd/index', '', 1, 0, 'C', '0', '0', 'eaviz:vd:use', 'skill', 'admin',
         sysdate(), '', null, '视频发作检测菜单');
+insert into sys_menu
+values ('124', '视频管理', '1', '11', 'video', 'system/video/index', '', 1, 0, 'C', '0', '0', 'system:video:list',
+        'radio', 'admin', sysdate(), '', null, 'VD视频管理菜单');
+insert into sys_menu
+values ('125', '智慧助手', '5', '1', 'chat', 'eaviz/agent/index', '', 1, 0, 'C', '0', '0', 'eaviz:agent:use',
+        'example', 'admin', sysdate(), '', null, '智慧助手菜单');
 -- 三级菜单
 insert into sys_menu
 values ('500', '操作日志', '108', '1', 'operlog', 'monitor/operlog/index', '', 1, 0, 'C', '0', '0',
@@ -654,6 +660,8 @@ values ('2', '123');
 insert into sys_role_menu
 values ('2', '124');
 insert into sys_role_menu
+values ('2', '125');
+insert into sys_role_menu
 values ('2', '500');
 insert into sys_role_menu
 values ('2', '501');
@@ -823,6 +831,8 @@ insert into sys_role_menu
 values ('3', '123');
 insert into sys_role_menu
 values ('3', '124');
+insert into sys_role_menu
+values ('3', '125');
 insert into sys_role_menu
 values ('3', '1061');
 insert into sys_role_menu

@@ -111,7 +111,7 @@ export const eavizItems = [
     title: "智慧助手",
     color: '#90EE90',
     description: "Medical Assistant & Web Search",
-    href: "/eaviz/agent",
+    href: "/agent",
     memberLink: "",
   },
 ];
