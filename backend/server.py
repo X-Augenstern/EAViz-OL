@@ -9,6 +9,7 @@ from config.get_redis import RedisUtil
 from config.get_scheduler import SchedulerUtil
 from exceptions.handle import handle_exception
 from middlewares.handle import handle_middleware
+from module_admin.controller.agent_controller import agentController
 from module_admin.controller.analysis_controller import analysisController
 from module_admin.controller.cache_controller import cacheController
 from module_admin.controller.captcha_controller import captchaController
@@ -105,7 +106,8 @@ controller_list = [
     {'router': serverController, 'tags': ['系统监控-菜单管理']},
     {'router': cacheController, 'tags': ['系统监控-缓存监控']},
     {'router': commonController, 'tags': ['通用模块']},
-    {'router': analysisController, 'tags': ['智能分析模块']}
+    {'router': analysisController, 'tags': ['智能分析模块']},
+    {'router': agentController, 'tags': ['智能体模块']}
 ]
 
 for controller in controller_list:
