@@ -86,10 +86,15 @@ onBeforeUnmount(() => {
 let eventSource = null;
 
 const scrollToBottom = () => {
+  // 使用双重 nextTick 和 requestAnimationFrame 确保 DOM 完全更新
   nextTick(() => {
-    if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-    }
+    requestAnimationFrame(() => {
+      // 直接滚动到页面底部
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth",
+      });
+    });
   });
 };
 
