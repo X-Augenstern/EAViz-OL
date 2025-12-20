@@ -232,8 +232,8 @@ insert into sys_menu
 values ('4', '智能分析', '0', '4', 'eaviz', null, '', 1, 0, 'M', '0', '0', '', 'guide', 'admin', sysdate(), '', null,
         '智能分析目录');
 insert into sys_menu
-values ('5', '智慧助手', '0', '5', 'agent', null, '', 1, 0, 'M', '0', '0', '', 'example', 'admin', sysdate(), '', null,
-        '智慧助手目录');
+values ('5', '智慧医疗助手', '0', '5', 'agent', null, '', 1, 0, 'M', '0', '0', '', 'example', 'admin', sysdate(), '',
+        null, '智慧医疗助手目录');
 -- 二级菜单
 insert into sys_menu
 values ('100', '用户管理', '1', '1', 'user', 'system/user/index', '', 1, 0, 'C', '0', '0', 'system:user:list', 'user',
@@ -311,8 +311,8 @@ insert into sys_menu
 values ('124', '视频管理', '1', '11', 'video', 'system/video/index', '', 1, 0, 'C', '0', '0', 'system:video:list',
         'radio', 'admin', sysdate(), '', null, 'VD视频管理菜单');
 insert into sys_menu
-values ('125', '智慧助手', '5', '1', 'chat', 'eaviz/agent/index', '', 1, 0, 'C', '0', '0', 'eaviz:agent:use',
-        'example', 'admin', sysdate(), '', null, '智慧助手菜单');
+values ('125', '智慧医疗助手', '5', '1', 'chat', 'eaviz/agent/index', '', 1, 0, 'C', '0', '0', 'eaviz:agent:use',
+        'example', 'admin', sysdate(), '', null, '智慧医疗助手菜单');
 -- 三级菜单
 insert into sys_menu
 values ('500', '操作日志', '108', '1', 'operlog', 'monitor/operlog/index', '', 1, 0, 'C', '0', '0',

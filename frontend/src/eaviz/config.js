@@ -108,10 +108,10 @@ export const eavizItems = [
   },
   {
     id: "06",
-    title: "智慧助手",
+    title: "智慧医疗助手",
     color: '#90EE90',
     description: "Medical Assistant & Web Search",
-    href: "/agent",
+    href: "/agent/chat",
     memberLink: "",
   },
 ];
