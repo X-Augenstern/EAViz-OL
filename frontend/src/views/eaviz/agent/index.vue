@@ -256,7 +256,7 @@ onBeforeUnmount(() => {
   border-radius: 14px;
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
 }
 
@@ -267,7 +267,7 @@ onBeforeUnmount(() => {
 
 .assistant-plain {
   max-width: 70%;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
   color: #303133;
 }
@@ -329,8 +329,8 @@ onBeforeUnmount(() => {
   /* 与上方 chat-container 一样宽度和左右留白，在内容区域内居中 */
   max-width: 1200px;
   margin: 0 auto;
-  /* 默认左右各 140px，保持与 chat-container 完全同步 */
-  padding: 15px 122px 24px 140px;
+  /* 左右各 140px，与 chat-container 完全同步，确保右侧对齐 */
+  padding: 15px 140px 24px 140px;
   background: #f7f8fb;
   position: relative; /* 让欢迎语的 absolute 参考这一块 */
   // .composer 是 fixed，相对于视口，需要补偿 .main-container 的 margin-left 变化
@@ -348,7 +348,7 @@ onBeforeUnmount(() => {
   // 初始状态上移到页面中部附近，合并 transform
   transform: translate(
     calc(var(--sidebar-width-collapsed) / 2 + var(--sidebar-offset) / 2),
-    -40vh
+    -35vh
   );
 }
 

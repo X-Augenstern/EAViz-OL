@@ -89,12 +89,13 @@ const onQuickClick = (text) => {
 .quick-row {
   display: flex;
   flex-wrap: nowrap; /* 不换行，保持一行展示 */
-  justify-content: flex-start; /* 宽度由文字决定，自然排布 */
-  gap: 8px; /* 按钮之间固定间距 */
+  justify-content: space-between; /* 按钮均匀分布，第一个和最后一个贴边 */
   width: 100%;
   /* 与输入框同宽，由外层容器控制整体左右留白，这里不再额外缩进 */
   padding: 0;
   margin-bottom: 8px;
+  /* 确保不超出容器 */
+  overflow: hidden;
 }
 
 .quick-row :deep(.el-button) {
