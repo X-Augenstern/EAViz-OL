@@ -34,6 +34,16 @@
       </div>
       <!-- 下半部分：发送按钮区域（在同一卡片内） -->
       <div class="send-row">
+        <!-- 深度思考按钮 -->
+        <el-button
+          class="deep-thinking-btn"
+          :class="{ 'is-active': isDeepThinking }"
+          :disabled="loading"
+          @click="toggleDeepThinking"
+        >
+          深度思考
+        </el-button>
+        <!-- 发送按钮 -->
         <el-button
           type="primary"
           class="send-btn"
@@ -70,9 +80,26 @@ const props = defineProps({
       "有什么药可以缓解癫痫发作",
     ],
   },
+  deepThinking: {
+    type: Boolean,
+    default: false, // 默认关闭深度思考模式
+  },
 });
 
-const emits = defineEmits(["update:modelValue", "send"]);
+const emits = defineEmits(["update:modelValue", "send", "update:deepThinking"]);
+
+const isDeepThinking = computed({
+  get() {
+    return props.deepThinking;
+  },
+  set(val) {
+    emits("update:deepThinking", val);
+  },
+});
+
+const toggleDeepThinking = () => {
+  isDeepThinking.value = !isDeepThinking.value;
+};
 
 const textareaRef = ref(null);
 const textareaHeight = ref(80); // 初始高度，约3行
@@ -227,13 +254,42 @@ const onQuickClick = (text) => {
   max-height: 130px;
 }
 
-.send-btn {
-  min-width: 80px;
-}
-
 .send-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.deep-thinking-btn {
+  min-width: 80px;
+  flex-shrink: 0;
+  border: 1px solid #dcdfe6;
+  background: #ffffff;
+  color: #606266;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+
+  &:hover:not(:disabled) {
+    border-color: #409eff;
+    color: #409eff;
+  }
+
+  &.is-active {
+    background: #409eff;
+    border-color: #409eff;
+    color: #ffffff;
+  }
+
+  &.is-active:hover:not(:disabled) {
+    background: #66b1ff;
+    border-color: #66b1ff;
+  }
+}
+
+.send-btn {
+  min-width: 80px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {

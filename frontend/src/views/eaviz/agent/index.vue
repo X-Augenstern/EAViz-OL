@@ -50,6 +50,7 @@
         <AgentWelcome :visible="messages.length === 0" />
         <AgentComposer
           v-model="inputMessage"
+          v-model:deepThinking="deepThinking"
           :loading="loading"
           @send="handleSend"
         />
@@ -71,6 +72,7 @@ const messages = ref([]);
 const inputMessage = ref("");
 const loading = ref(false);
 const messagesContainer = ref(null);
+const deepThinking = ref(false); // 默认关闭深度思考模式
 
 // 侧边栏状态：使用布尔，确保 class 绑定能正确触发响应式
 const appStore = useAppStore();
@@ -120,7 +122,7 @@ const handleSend = async (externalMessage) => {
 
   try {
     const { createAgentChatConnection } = await import("@/api/agent");
-    eventSource = createAgentChatConnection(userMessage);
+    eventSource = createAgentChatConnection(userMessage, deepThinking.value);
 
     const assistant = {
       type: "assistant",
@@ -142,7 +144,8 @@ const handleSend = async (externalMessage) => {
 
       const current = messages.value[idx];
       if (!current || current.type !== "assistant") return;
-      current.content = current.content ? current.content + "\n" + data : data;
+      // 直接拼接数据，不添加换行符（数据本身可能包含换行符）
+      current.content = (current.content || "") + data;
       scrollToBottom();
     };
 

@@ -420,7 +420,9 @@ class EAVizSettings:
 
 class AgentSettings:
     LITEMIND_AGENT_BASE_URL = getenv('LITEMIND_AGENT_BASE_URL', 'http://localhost:8123')
-    LITEMIND_AGENT_CHAT_ENDPOINT = getenv('LITEMIND_AGENT_CHAT_ENDPOINT', '/api/ai/liteMind/chat')
+    LITEMIND_AGENT_BASE_API = getenv('LITEMIND_AGENT_BASE_API', '/api/ai')
+    DEEP_THINKING_ENDPOINT = LITEMIND_AGENT_BASE_API + '/chat/liteMind'
+    SIMPLE_CHAT_ENDPOINT = LITEMIND_AGENT_BASE_API + '/chat/simple'
     LITEMIND_AGENT_TIMEOUT = int(getenv('LITEMIND_AGENT_TIMEOUT', '300'))  # 默认300秒超时（SSE流式响应需要更长时间）
 
 
