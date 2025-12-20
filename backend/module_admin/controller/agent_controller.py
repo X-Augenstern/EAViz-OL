@@ -191,7 +191,7 @@ async def chat_with_agent(
         # 解析用户和token
         result = await parse_cur_user_and_token(request, request_id, token_param, query_db)
         if result is None:
-            return ResponseUtil.error(code=401, msg='认证失败或已过期，请重新登录')
+            return ResponseUtil.unauthorized(msg='认证失败或已过期，请重新登录')
         user_name, token = result
 
         logger.info(
@@ -249,7 +249,7 @@ async def simple_chat_with_agent(
         # 解析用户和token
         result = await parse_cur_user_and_token(request, request_id, token_param, query_db)
         if result is None:
-            return ResponseUtil.error(code=401, msg='认证失败或已过期，请重新登录')
+            return ResponseUtil.unauthorized(msg='认证失败或已过期，请重新登录')
         user_name, token = result
 
         logger.info(
