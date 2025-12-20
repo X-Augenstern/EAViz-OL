@@ -425,6 +425,19 @@ class AgentSettings:
     SIMPLE_CHAT_ENDPOINT = LITEMIND_AGENT_BASE_API + '/chat/simple'
     LITEMIND_AGENT_TIMEOUT = int(getenv('LITEMIND_AGENT_TIMEOUT', '300'))  # 默认300秒超时（SSE流式响应需要更长时间）
 
+    # For internal hosts (localhost / 127.0.0.1 / 0.0.0.0 / cluster local names) we should not use proxy.
+    # These defaults can be overridden by environment variables:
+    #   AGENT_INTERNAL_HOSTS (comma-separated, e.g. "localhost,127.0.0.1")
+    #   AGENT_K8S_INTERNAL_SUFFIXES (comma-separated, e.g. ".svc,.svc.cluster.local")
+    INTERNAL_HOST_SET = set(getenv('AGENT_INTERNAL_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(','))
+    # treat typical k8s internal suffixes as internal as well; override with AGENT_K8S_INTERNAL_SUFFIXES
+    K8S_INTERNAL_SUFFIXES = tuple(getenv('AGENT_K8S_INTERNAL_SUFFIXES', '.svc,.svc.cluster.local,.cluster.local').split(','))
+
+    # Control request URL/params logging level for upstream debug:
+    # Set AGENT_REQUEST_LOG_LEVEL=INFO to log request URL/params at INFO level (useful in prod triage).
+    # Default remains DEBUG.
+    AGENT_REQUEST_LOG_LEVEL = getenv('AGENT_REQUEST_LOG_LEVEL', 'DEBUG').upper()
+
 
 class GetConfig:
     """
