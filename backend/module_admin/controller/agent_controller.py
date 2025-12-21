@@ -1,7 +1,10 @@
 from asyncio import sleep
-from fastapi import APIRouter, Depends, Request, Query
-from fastapi.responses import StreamingResponse
+from datetime import datetime
+from fastapi import APIRouter, Depends, Request, Query, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import StreamingResponse, JSONResponse
 from httpx import AsyncClient, TimeoutException, HTTPStatusError, Limits
+from json import loads
 from sqlalchemy.orm import Session
 from typing import Optional
 from urllib.parse import urlparse
@@ -82,6 +85,7 @@ async def stream_agent_response(
 ):
     """通用的SSE流式响应生成器"""
     try:
+        # 注意：由上游服务负责发送 chatId 给前端（避免重复）。这里不再预先发送 chatId。
         # 使用httpx异步客户端调用Agent服务，配置连接池限制
 
         async with AsyncClient(
@@ -155,10 +159,10 @@ async def stream_agent_response(
                                 continue
 
                             # 向前端返回简洁错误信息（避免泄露过多内部信息）
-                            yield f"data: {error_msg}\\n\\n"
+                            yield f"data: {error_msg}\n\n"
                             if body_snippet:
-                                yield f"data: Agent返回信息片段: {body_snippet[:300]}\\n\\n"
-                            yield "data: [DONE]\\n\\n"
+                                yield f"data: Agent返回信息片段: {body_snippet[:300]}\n\n"
+                            yield "data: [DONE]\n\n"
                             return
 
                         # 直接按文本读取，让httpx处理编码
@@ -242,30 +246,33 @@ async def stream_agent_response(
         yield "data: [DONE]\n\n"
 
 
-@agentController.get("/chat/liteMind")
+@agentController.get("/chat")
 async def chat_with_agent(
         request: Request,
         message: str = Query(..., description="用户消息"),
+        deepThinking: Optional[bool] = Query(default=False, description="是否启用深度思考模式"),
         token_param: Optional[str] = Query(default=None, description="可选token参数"),
         query_db: Session = Depends(get_db),
 ):
     """
-    SSE流式代理到LiteMind-Agent服务的深度思考接口
-    
-    使用GET请求，参数：
-    - message: 用户消息内容
-    
-    返回SSE流式响应
+    根据 deepThinking 参数选择上游 endpoint。
+    deepThinking=True -> 深度思考 (liteMind)
+    deepThinking=False -> 简单对话 (simple)
     """
-    request_id = str(uuid4())[:8]
-
+    request_id = uuid4().hex
     try:
         if not message or not message.strip():
             return ResponseUtil.error(msg='消息内容不能为空')
 
-        # 构建LiteMind-Agent服务URL（使用GET请求）
-        agent_url = f"{AgentConfig.LITEMIND_AGENT_BASE_URL}{AgentConfig.DEEP_THINKING_ENDPOINT}"
-        params = {"message": message}
+        # choose endpoint
+        if deepThinking:
+            endpoint = AgentConfig.DEEP_THINKING_ENDPOINT
+            label = "deep thinking"
+        else:
+            endpoint = AgentConfig.SIMPLE_CHAT_ENDPOINT
+            label = "simple chat"
+        agent_url = f"{AgentConfig.LITEMIND_AGENT_BASE_URL}{endpoint}"
+        params = {"message": message, "chatId": request_id}
 
         # 解析用户和token
         result = await parse_cur_user_and_token(request, request_id, token_param, query_db)
@@ -274,13 +281,11 @@ async def chat_with_agent(
         user_name, token = result
 
         logger.info(
-            f"[{request_id}] 转发深度思考SSE请求到LiteMind-Agent服务: {agent_url}, "
-            f"用户: {user_name}, 消息: {message[:50]}..."
-        )
+            f"[{request_id}] 转发{label}SSE请求到LiteMind-Agent服务: {agent_url}, 用户: {user_name}, 消息: {message[:50]}...")
 
         # 返回SSE流式响应
         return StreamingResponse(
-            stream_agent_response(agent_url, params, token, request_id, "deep thinking"),
+            stream_agent_response(agent_url, params, token, request_id, label),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -294,58 +299,79 @@ async def chat_with_agent(
         return ResponseUtil.error(msg=f'处理请求时出错: {str(e)}')
 
 
-@agentController.get("/chat/simple")
-async def simple_chat_with_agent(
+@agentController.post("/terminate")
+async def terminate_agent_chat(
         request: Request,
-        message: str = Query(..., description="用户消息"),
-        chat_id: Optional[str] = Query(default=None, description="会话ID，可选"),
+        chat_id: str = Query(..., description="要终止的chatId"),
         token_param: Optional[str] = Query(default=None, description="可选token参数"),
-        query_db: Session = Depends(get_db),
 ):
     """
-    SSE流式代理到LiteMind-Agent服务的简单对话接口
-    
-    使用GET请求，参数：
-    - message: 用户消息内容
-    - chat_id: 会话ID（可选，默认使用"default"）
-    
-    返回SSE流式响应
+    转发终止请求到 Agent 服务
     """
-    request_id = str(uuid4())[:8]
-
+    request_id = uuid4().hex
     try:
-        if not message or not message.strip():
-            return ResponseUtil.error(msg='消息内容不能为空')
+        token = token_param or request.query_params.get('token') or request.headers.get('Authorization', '').replace(
+            'Bearer ', '')
+        terminate_url = f"{AgentConfig.LITEMIND_AGENT_BASE_URL}{AgentConfig.TERMINATE_ENDPOINT}"
 
-        # 如果没有提供chatId，使用默认值
-        if not chat_id or not chat_id.strip():
-            chat_id = "default"
+        async with AsyncClient(timeout=AgentConfig.LITEMIND_AGENT_TIMEOUT,
+                               trust_env=trust_env_proxy(terminate_url)) as client:
+            headers = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            # 使用 POST 方式通知 Agent 终止指定 chatId
+            resp = await client.post(terminate_url, params={"chatId": chat_id}, headers=headers)
+            try:
+                raw = await resp.aread()
+                raw_text = raw.decode('utf-8', errors='replace').strip()
+            except Exception:
+                raw_text = ""
 
-        # 构建LiteMind-Agent服务URL（使用GET请求）
-        agent_url = f"{AgentConfig.LITEMIND_AGENT_BASE_URL}{AgentConfig.SIMPLE_CHAT_ENDPOINT}"
-        params = {"message": message, "chatId": chat_id}
+            # 如果 Agent 返回 HTTP 404，明确映射为 app-level 404 响应（chatId 未找到）
+            if resp.status_code == 404:
+                logger.warning(f"[{request_id}] Agent terminate returned 404 for chatId: {chat_id}, body: {raw_text}")
+                return JSONResponse(
+                    status_code=status.HTTP_200_OK,
+                    content=jsonable_encoder({
+                        "code": 404,
+                        "msg": "chatId not found",
+                        "success": False,
+                        "time": datetime.now()
+                    })
+                )
 
-        # 解析用户和token
-        result = await parse_cur_user_and_token(request, request_id, token_param, query_db)
-        if result is None:
-            return ResponseUtil.unauthorized(msg='认证失败或已过期，请重新登录')
-        user_name, token = result
+            # try parse JSON body
+            if raw_text:
+                try:
+                    parsed = loads(raw_text)
+                    result_value = parsed.get("result") or parsed.get("status") or parsed.get("code")
+                    if isinstance(result_value, int):
+                        result_value = str(result_value)
+                except Exception:
+                    result_value = raw_text
+            else:
+                result_value = ""
 
-        logger.info(
-            f"[{request_id}] 转发简单对话SSE请求到LiteMind-Agent服务: {agent_url}, "
-            f"用户: {user_name}, 会话ID: {chat_id}, 消息: {message[:50]}..."
-        )
+            rv = (result_value or "").strip().lower()
 
-        # 返回SSE流式响应
-        return StreamingResponse(
-            stream_agent_response(agent_url, params, token, request_id, "simple chat"),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no"  # 禁用Nginx缓冲
-            }
-        )
+            if resp.status_code == 200 and rv in ("terminated", "ok", "done", "success"):
+                logger.info(
+                    f"[{request_id}] 已转发终止请求到 Agent: {terminate_url}, chatId: {chat_id}, result: {result_value}")
+                return ResponseUtil.success(msg="terminate forwarded")
+            elif resp.status_code == 200 and rv in ("not_found", "notfound", "404"):
+                logger.warning(f"[{request_id}] 终止请求返回 not_found for chatId: {chat_id}")
+                return JSONResponse(
+                    status_code=status.HTTP_200_OK,
+                    content=jsonable_encoder({
+                        "code": 404,
+                        "msg": "chatId not found",
+                        "success": False,
+                        "time": datetime.now()
+                    })
+                )
+            else:
+                logger.error(f"[{request_id}] 转发终止请求失败: {resp.status_code}, body: {raw_text}")
+                return ResponseUtil.error(msg=f"terminate failed, status {resp.status_code}")
     except Exception as e:
         logger.exception(e)
-        return ResponseUtil.error(msg=f'处理请求时出错: {str(e)}')
+        return ResponseUtil.error(msg=f"terminate failed: {str(e)}")

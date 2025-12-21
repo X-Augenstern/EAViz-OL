@@ -2,6 +2,17 @@
   <div class="agent-page" :class="{ 'sidebar-opened': isSidebarOpened }">
     <!-- 上方：对话区域，独立滚动 -->
     <div class="chat-container" :class="{ 'sidebar-opened': isSidebarOpened }">
+      <div
+        v-if="lastChatId"
+        class="chat-id-badge"
+        :title="lastChatId"
+        role="button"
+        tabindex="0"
+        @click="copyChatId"
+      >
+        <span class="chat-id-label">当前对话ID：</span>
+        <span class="chat-id-value">{{ chatIdShort }}</span>
+      </div>
       <div class="messages" ref="messagesContainer">
         <div
           v-for="(msg, idx) in messages"
@@ -50,9 +61,11 @@
         <AgentWelcome :visible="messages.length === 0" />
         <AgentComposer
           v-model="inputMessage"
-          v-model:deepThinking="deepThinking"
+          :deepThinking="deepThinking"
+          @update:deepThinking="(val) => (deepThinking = val)"
           :loading="loading"
           @send="handleSend"
+          @terminate="handleTerminate"
         />
       </div>
     </div>
@@ -61,6 +74,7 @@
 
 <script setup>
 import { ref, nextTick, watch, onBeforeUnmount, computed } from "vue";
+import { terminateAgentChat } from "@/api/agent";
 import { ElMessage } from "element-plus";
 import AgentComposer from "@/components/AgentComposer/index.vue";
 import AgentWelcome from "@/components/AgentWelcome/index.vue";
@@ -73,6 +87,8 @@ const inputMessage = ref("");
 const loading = ref(false);
 const messagesContainer = ref(null);
 const deepThinking = ref(false); // 默认关闭深度思考模式
+const lastSentMessage = ref("");
+const lastAssistantIdx = ref(null);
 
 // 侧边栏状态：使用布尔，确保 class 绑定能正确触发响应式
 const appStore = useAppStore();
@@ -86,6 +102,23 @@ onBeforeUnmount(() => {
 });
 
 let eventSource = null;
+const lastChatId = ref(null);
+const chatIdShort = computed(() => {
+  const id = lastChatId.value || "";
+  if (!id) return "";
+  return id.length > 10 ? `${id.slice(0, 8)}...` : id;
+});
+
+const copyChatId = async () => {
+  try {
+    if (!lastChatId.value) return;
+    await navigator.clipboard.writeText(lastChatId.value);
+    ElMessage.success("chatId 已复制到剪贴板");
+  } catch (e) {
+    console.warn("复制 chatId 失败", e);
+    ElMessage.error("复制失败");
+  }
+};
 
 const scrollToBottom = () => {
   // 使用双重 nextTick 和 requestAnimationFrame 确保 DOM 完全更新
@@ -105,6 +138,8 @@ const handleSend = async (externalMessage) => {
   if (!payload || !payload.trim() || loading.value) return;
 
   const userMessage = payload.trim();
+  // 保存用户发送内容，方便用户中止后恢复编辑
+  lastSentMessage.value = userMessage;
   inputMessage.value = "";
 
   messages.value.push({
@@ -130,9 +165,15 @@ const handleSend = async (externalMessage) => {
       timestamp: new Date(),
     };
     const idx = messages.value.push(assistant) - 1;
+    lastAssistantIdx.value = idx;
 
     eventSource.onmessage = (event) => {
       const data = (event.data || "").trim();
+      // special initial message containing chatId
+      if (data.startsWith("__CHAT_ID__:")) {
+        lastChatId.value = data.split(":", 2)[1];
+        return;
+      }
       if (data === "[DONE]") {
         loading.value = false;
         eventSource && eventSource.close();
@@ -182,6 +223,49 @@ const handleSend = async (externalMessage) => {
   }
 };
 
+const handleTerminate = () => {
+  // 用户在流式生成过程中点击终止
+  (async () => {
+    // 如果有 chatId，尝试告知后端转发到 Agent 进行取消
+    try {
+      if (lastChatId.value) {
+        terminateAgentChat(lastChatId.value).catch((e) => {
+          console.warn("terminate request failed", e);
+        });
+      }
+    } catch (e) {
+      console.warn("terminate flow error", e);
+    } finally {
+      if (eventSource) {
+        try {
+          eventSource.close();
+        } catch (e) {
+          console.error("关闭 EventSource 失败:", e);
+        }
+        eventSource = null;
+      }
+
+      loading.value = false;
+
+      // 恢复用户输入以便修改
+      if (lastSentMessage.value) {
+        inputMessage.value = lastSentMessage.value;
+      }
+
+      // 标记当前 assistant 为已终止
+      if (lastAssistantIdx.value !== null) {
+        const current = messages.value[lastAssistantIdx.value];
+        if (current && current.type === "assistant") {
+          current.content = (current.content || "") + "\n\n[已终止]";
+        }
+        lastAssistantIdx.value = null;
+      }
+
+      ElMessage.warning("已终止生成，你可以修改并重新发送。");
+    }
+  })();
+};
+
 const formatMessage = (content) =>
   content ? content.replace(/\n/g, "<br>") : "";
 
@@ -229,6 +313,7 @@ onBeforeUnmount(() => {
   padding: 24px 140px 24px;
   // .main-container 的 margin-left 已经处理了侧边栏偏移
   // 所以这里不需要额外的 transform
+  position: relative;
 }
 
 /* 对话区跟随页面整体滚动，不单独加内部滚动条 */
@@ -365,5 +450,34 @@ onBeforeUnmount(() => {
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+.chat-id-badge {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 2px solid #8fe27a;
+  background: #ffffff;
+  color: #2f8a2f;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(47, 138, 47, 0.08);
+  cursor: pointer;
+  user-select: none;
+}
+
+.chat-id-label {
+  color: #606266;
+  font-size: 12px;
+  margin-right: 6px;
+}
+.chat-id-value {
+  color: #2f8a2f;
+  font-weight: 600;
 }
 </style>

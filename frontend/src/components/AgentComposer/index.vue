@@ -43,16 +43,28 @@
         >
           深度思考
         </el-button>
-        <!-- 发送按钮 -->
-        <el-button
-          type="primary"
-          class="send-btn"
-          :loading="loading"
-          :disabled="!innerValue.trim()"
-          @click="onSend()"
-        >
-          发送
-        </el-button>
+        <!-- 发送 / 终止 按钮：发送时显示，流式进行中则显示终止 -->
+        <div class="send-action">
+          <el-button
+            v-if="!loading"
+            type="primary"
+            class="send-btn"
+            :loading="loading"
+            :disabled="!innerValue.trim()"
+            @click="onSend()"
+          >
+            发送
+          </el-button>
+
+          <el-button
+            v-else
+            type="danger"
+            class="send-btn"
+            @click="onTerminate"
+          >
+            终止
+          </el-button>
+        </div>
       </div>
     </div>
   </div>
@@ -86,7 +98,7 @@ const props = defineProps({
   },
 });
 
-const emits = defineEmits(["update:modelValue", "send", "update:deepThinking"]);
+const emits = defineEmits(["update:modelValue", "send", "terminate", "update:deepThinking"]);
 
 const isDeepThinking = computed({
   get() {
@@ -175,6 +187,10 @@ onMounted(() => {
 
 const onSend = (externalMessage) => {
   emits("send", externalMessage);
+};
+
+const onTerminate = () => {
+  emits("terminate");
 };
 
 const onQuickClick = (text) => {
@@ -290,6 +306,20 @@ const onQuickClick = (text) => {
 .send-btn {
   min-width: 80px;
   flex-shrink: 0;
+}
+
+.send-action :deep(.el-button--danger) {
+  min-width: 80px;
+  flex-shrink: 0;
+  border-radius: 20px;
+  background: #f56c6c;
+  border-color: #f56c6c;
+  color: #ffffff;
+}
+
+.send-action :deep(.el-button--danger):hover:not(:disabled) {
+  background: #ff7b7b;
+  border-color: #ff7b7b;
 }
 
 @media (max-width: 768px) {
