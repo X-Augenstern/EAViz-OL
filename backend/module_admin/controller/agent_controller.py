@@ -250,29 +250,48 @@ async def stream_agent_response(
 async def chat_with_agent(
         request: Request,
         message: str = Query(..., description="用户消息"),
-        deepThinking: Optional[bool] = Query(default=False, description="是否启用深度思考模式"),
+        deep_thinking: Optional[bool] = Query(default=False, alias="deepThinking", description="是否启用深度思考模式"),
+        chat_id: Optional[str] = Query(default=None, alias="sessionChatId",
+                                       description="会话级 chatId，来自前端 localStorage（可选）"),
         token_param: Optional[str] = Query(default=None, description="可选token参数"),
         query_db: Session = Depends(get_db),
 ):
     """
-    根据 deepThinking 参数选择上游 endpoint。
-    deepThinking=True -> 深度思考 (liteMind)
-    deepThinking=False -> 简单对话 (simple)
+    根据 deep_thinking 参数选择上游 endpoint。
+    deep_thinking=True -> 深度思考 (liteMind)
+    deep_thinking=False -> 简单对话 (simple)
     """
     request_id = uuid4().hex
     try:
         if not message or not message.strip():
             return ResponseUtil.error(msg='消息内容不能为空')
 
+        # 如果前端传入 chat_id，则做简单校验并注册（记录）
+        if chat_id:
+            try:
+                # 要求为 uuid4().hex 格式的 32 位十六进制字符串
+                if not (isinstance(chat_id, str) and len(chat_id) == 32 and int(chat_id, 16) >= 0):
+                    logger.warning(f"[{request_id}] 无效的 chat_id: {chat_id}")
+                    return ResponseUtil.error(msg="invalid chat_id")
+            except Exception:
+                logger.warning(f"[{request_id}] 无效的 chat_id(format): {chat_id}")
+                return ResponseUtil.error(msg="invalid chat_id")
+            # 简单注册：记录日志（未来可扩展为持久化）
+            logger.info(f"[{request_id}] chat_id accepted/registered: {chat_id}")
+        # 如果前端传入 chat_id，则将其转发给 Agent 作为 chatId；
+        # 否则不主动生成或传递 chatId，让 Agent 自行生成并在 SSE 流中下发 __CHAT_ID__ 给前端。
+        params = {"message": message}
+        if chat_id:
+            params["chatId"] = chat_id  # 已在上面校验格式并记录
+
         # choose endpoint
-        if deepThinking:
+        if deep_thinking:
             endpoint = AgentConfig.DEEP_THINKING_ENDPOINT
             label = "deep thinking"
         else:
             endpoint = AgentConfig.SIMPLE_CHAT_ENDPOINT
             label = "simple chat"
         agent_url = f"{AgentConfig.LITEMIND_AGENT_BASE_URL}{endpoint}"
-        params = {"message": message, "chatId": request_id}
 
         # 解析用户和token
         result = await parse_cur_user_and_token(request, request_id, token_param, query_db)
@@ -281,7 +300,8 @@ async def chat_with_agent(
         user_name, token = result
 
         logger.info(
-            f"[{request_id}] 转发{label}SSE请求到LiteMind-Agent服务: {agent_url}, 用户: {user_name}, 消息: {message[:50]}...")
+            f"[{request_id}] 转发{label}SSE请求到LiteMind-Agent服务: {agent_url}, 用户: {user_name}, "
+            f"message_preview: {message[:50]}..., provided_chat_id: {chat_id or '<none>'}")
 
         # 返回SSE流式响应
         return StreamingResponse(
@@ -293,7 +313,6 @@ async def chat_with_agent(
                 "X-Accel-Buffering": "no"  # 禁用Nginx缓冲
             }
         )
-
     except Exception as e:
         logger.exception(e)
         return ResponseUtil.error(msg=f'处理请求时出错: {str(e)}')

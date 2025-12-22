@@ -2,16 +2,27 @@
   <div class="agent-page" :class="{ 'sidebar-opened': isSidebarOpened }">
     <!-- 上方：对话区域，独立滚动 -->
     <div class="chat-container" :class="{ 'sidebar-opened': isSidebarOpened }">
-      <div
-        v-if="lastChatId"
-        class="chat-id-badge"
-        :title="lastChatId"
-        role="button"
-        tabindex="0"
-        @click="copyChatId"
-      >
-        <span class="chat-id-label">当前对话ID：</span>
-        <span class="chat-id-value">{{ chatIdShort }}</span>
+      <div v-if="lastChatId" class="chat-top-controls">
+        <div
+          class="chat-id-badge"
+          :title="lastChatId"
+          role="button"
+          tabindex="0"
+          @click="copyChatId"
+        >
+          <span class="chat-id-label">当前对话ID：</span>
+          <span class="chat-id-value">{{ chatIdShort }}</span>
+        </div>
+        <el-button
+          v-if="lastChatId"
+          class="chat-id-action new-convo-btn"
+          type="primary"
+          plain
+          size="small"
+          @click="newConversation"
+        >
+          新建对话
+        </el-button>
       </div>
       <div class="messages" ref="messagesContainer">
         <div
@@ -73,9 +84,16 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch, onBeforeUnmount, computed } from "vue";
+import {
+  ref,
+  nextTick,
+  watch,
+  onBeforeUnmount,
+  onMounted,
+  computed,
+} from "vue";
 import { terminateAgentChat } from "@/api/agent";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import AgentComposer from "@/components/AgentComposer/index.vue";
 import AgentWelcome from "@/components/AgentWelcome/index.vue";
 import useAppStore from "@/store/modules/app";
@@ -119,6 +137,15 @@ const copyChatId = async () => {
     ElMessage.error("复制失败");
   }
 };
+const sessionChatId = ref(
+  localStorage.getItem("agent_session_chat_id") || null
+);
+
+onMounted(() => {
+  // restore sessionChatId from storage if present
+  const v = localStorage.getItem("agent_session_chat_id");
+  if (v) sessionChatId.value = v;
+});
 
 const scrollToBottom = () => {
   // 使用双重 nextTick 和 requestAnimationFrame 确保 DOM 完全更新
@@ -157,7 +184,11 @@ const handleSend = async (externalMessage) => {
 
   try {
     const { createAgentChatConnection } = await import("@/api/agent");
-    eventSource = createAgentChatConnection(userMessage, deepThinking.value);
+    eventSource = createAgentChatConnection(
+      userMessage,
+      deepThinking.value,
+      sessionChatId.value
+    );
 
     const assistant = {
       type: "assistant",
@@ -171,7 +202,17 @@ const handleSend = async (externalMessage) => {
       const data = (event.data || "").trim();
       // special initial message containing chatId
       if (data.startsWith("__CHAT_ID__:")) {
-        lastChatId.value = data.split(":", 2)[1];
+        const id = data.split(":", 2)[1];
+        lastChatId.value = id;
+        // if no sessionChatId persisted, save this id as sessionChatId
+        if (!sessionChatId.value) {
+          sessionChatId.value = id;
+          try {
+            localStorage.setItem("agent_session_chat_id", id);
+          } catch (e) {
+            console.warn("无法存储 sessionChatId", e);
+          }
+        }
         return;
       }
       if (data === "[DONE]") {
@@ -228,8 +269,9 @@ const handleTerminate = () => {
   (async () => {
     // 如果有 chatId，尝试告知后端转发到 Agent 进行取消
     try {
-      if (lastChatId.value) {
-        terminateAgentChat(lastChatId.value).catch((e) => {
+      const targetChatId = lastChatId.value || sessionChatId.value;
+      if (targetChatId) {
+        terminateAgentChat(targetChatId).catch((e) => {
           console.warn("terminate request failed", e);
         });
       }
@@ -264,6 +306,57 @@ const handleTerminate = () => {
       ElMessage.warning("已终止生成，你可以修改并重新发送。");
     }
   })();
+};
+
+const newConversation = () => {
+  // 询问确认后清理会话标识并重置界面
+  ElMessageBox.confirm("确定要新建对话并清除当前会话吗？", "新建对话", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
+    .then(async () => {
+      try {
+        // 如果存在 sessionChatId，先向后端/Agent 发起 hard terminate 请求，等待完成或失败后再清理本地会话
+        if (sessionChatId && sessionChatId.value) {
+          try {
+            await terminateAgentChat(sessionChatId.value, true);
+          } catch (e) {
+            console.warn(
+              "newConversation terminate request failed (ignored):",
+              e
+            );
+          }
+        }
+        if (eventSource) {
+          try {
+            eventSource.close();
+          } catch (e) {
+            /* ignore */
+          }
+          eventSource = null;
+        }
+        // 清空持久化的 session id
+        sessionChatId.value = null;
+        lastChatId.value = null;
+        try {
+          localStorage.removeItem("agent_session_chat_id");
+        } catch (e) {
+          console.warn("无法移除 sessionChatId", e);
+        }
+        // 重置消息与输入
+        messages.value = [];
+        inputMessage.value = "";
+        loading.value = false;
+        lastAssistantIdx.value = null;
+        lastSentMessage.value = "";
+      } catch (e) {
+        console.warn("newConversation error", e);
+      }
+    })
+    .catch(() => {
+      // 取消则不做任何操作
+    });
 };
 
 const formatMessage = (content) =>
@@ -453,31 +546,91 @@ onBeforeUnmount(() => {
 }
 
 .chat-id-badge {
-  position: absolute;
-  left: 12px;
-  top: 12px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px 8px;
-  border-radius: 12px;
-  border: 2px solid #8fe27a;
+  padding: 6px 10px;
+  border-radius: 8px;
   background: #ffffff;
-  color: #2f8a2f;
+  border: 1px solid #e6edf3;
+  color: #606266;
   font-size: 12px;
   line-height: 1;
-  box-shadow: 0 1px 4px rgba(47, 138, 47, 0.08);
   cursor: pointer;
   user-select: none;
+  white-space: nowrap; /* prevent label/value wrapping */
+  max-width: none;
+  overflow: visible;
+  flex: none;
+  z-index: 61;
 }
 
 .chat-id-label {
   color: #606266;
   font-size: 12px;
-  margin-right: 6px;
+  display: inline-block;
 }
 .chat-id-value {
-  color: #2f8a2f;
+  display: inline-block;
+  background: #2f8a2f;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 999px;
   font-weight: 600;
+  font-size: 12px;
+  line-height: 1;
+  min-width: 0;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+
+.chat-top-controls {
+  position: absolute;
+  left: -7px;
+  top: 11px;
+  display: flex;
+  align-items: center;
+  z-index: 60;
+  pointer-events: auto;
+  white-space: nowrap;
+  padding: 4px;
+  background: transparent;
+}
+.new-convo-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  flex: none;
+  align-self: center;
+  margin-left: 8px;
+  z-index: 61;
+}
+
+.chat-id-action {
+  background: #ffffff;
+  border: 1px solid #d5eefa;
+  color: #606266;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* ensure action buttons align and match badge height */
+.chat-id-action,
+.new-convo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.messages {
+  padding-top: 72px; /* make room for top controls */
 }
 </style>
