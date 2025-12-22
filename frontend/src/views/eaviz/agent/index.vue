@@ -15,10 +15,8 @@
         </div>
         <el-button
           v-if="lastChatId"
-          class="chat-id-action new-convo-btn"
+          class="new-convo-btn"
           type="primary"
-          plain
-          size="small"
           @click="newConversation"
         >
           新建对话
@@ -640,10 +638,10 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   padding: 6px 10px;
-  border-radius: 8px;
-  background: #ffffff;
-  border: 1px solid #e6edf3;
-  color: #606266;
+  border-radius: 8px; /* full pill */
+  background: #2f8a2f; /* pill color across whole badge */
+  border: none;
+  color: #ffffff;
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
@@ -653,19 +651,20 @@ onBeforeUnmount(() => {
   overflow: visible;
   flex: none;
   z-index: 61;
+  transition: background-color 0.12s ease, transform 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
 .chat-id-label {
-  color: #606266;
+  color: rgba(255, 255, 255, 0.95);
   font-size: 12px;
   display: inline-block;
 }
 .chat-id-value {
   display: inline-block;
-  background: #2f8a2f;
+  background: transparent;
   color: #ffffff;
-  padding: 4px 8px;
-  border-radius: 999px;
+  padding: 4px 1px;
   font-weight: 600;
   font-size: 12px;
   line-height: 1;
@@ -674,7 +673,19 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: none;
+}
+
+/* hover / focus styles for badge */
+.chat-id-badge:hover,
+.chat-id-badge:focus {
+  background: #2f7e2e;
+  box-shadow: 0 8px 22px rgba(47, 141, 255, 0.08);
+  transform: translateY(-1px);
+  outline: none;
+}
+.chat-id-badge:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(47, 141, 255, 0.05);
 }
 
 .chat-top-controls {
@@ -690,7 +701,7 @@ onBeforeUnmount(() => {
   background: transparent;
 }
 .new-convo-btn {
-  padding: 6px 10px;
+  min-width: 80px;
   border-radius: 8px;
   font-size: 12px;
   white-space: nowrap;
@@ -698,6 +709,13 @@ onBeforeUnmount(() => {
   align-self: center;
   margin-left: 8px;
   z-index: 61;
+  background: #409eff;
+  border-color: #409eff;
+  color: #ffffff;
+}
+.new-convo-btn:hover:not(:disabled) {
+  background: #66b1ff;
+  border-color: #66b1ff;
 }
 
 .chat-id-action {
