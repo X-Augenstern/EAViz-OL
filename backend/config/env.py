@@ -238,7 +238,7 @@ class EAVizSettings:
 
     class AddressConfig:
         BASE_ROOT = UploadSettings.DOWNLOAD_PATH
-        BASE_CP_ROOT = 'eaviz'
+        BASE_CP_ROOT = path.join(path.abspath(getcwd()), 'eaviz')
         FOLDER = {
             "ESC_SD/ESC": ["feature_map", "stft_feature", "res"],
             "ESC_SD/SD": ["feature_map", "stft_feature", "res"],

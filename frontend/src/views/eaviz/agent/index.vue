@@ -139,7 +139,6 @@ const loading = ref(false);
 const messagesContainer = ref(null);
 const deepThinking = ref(false); // 默认关闭深度思考模式
 const lastSentMessage = ref("");
-const lastAssistantIdx = ref(null);
 
 // 侧边栏状态：使用布尔，确保 class 绑定能正确触发响应式
 const appStore = useAppStore();
@@ -284,8 +283,8 @@ const handleSend = async (externalMessage) => {
       content: "",
       timestamp: new Date(),
     };
-    const idx = messages.value.push(assistant) - 1;
-    lastAssistantIdx.value = idx;
+    messages.value.push(assistant);
+    const idx = messages.value.length - 1;
 
     eventSource.onmessage = (event) => {
       const data = (event.data || "").trim();
@@ -314,7 +313,18 @@ const handleSend = async (externalMessage) => {
       if (!data) return;
 
       const current = messages.value[idx];
-      if (!current || current.type !== "assistant") return;
+      if (!current) {
+        console.warn(
+          "[Agent SSE] missing current message at idx",
+          idx,
+          messages.value
+        );
+        return;
+      }
+      if (current.type !== "assistant") {
+        console.warn("[Agent SSE] current message is not assistant:", current);
+        return;
+      }
       // 直接拼接数据，不添加换行符（数据本身可能包含换行符）
       current.content = (current.content || "") + data;
       scrollToBottom();
@@ -383,15 +393,6 @@ const handleTerminate = () => {
         inputMessage.value = lastSentMessage.value;
       }
 
-      // 标记当前 assistant 为已终止
-      if (lastAssistantIdx.value !== null) {
-        const current = messages.value[lastAssistantIdx.value];
-        if (current && current.type === "assistant") {
-          current.content = (current.content || "") + "\n\n[已终止]";
-        }
-        lastAssistantIdx.value = null;
-      }
-
       ElMessage.warning("已终止生成，你可以修改并重新发送。");
     }
   })();
@@ -437,7 +438,6 @@ const newConversation = () => {
         messages.value = [];
         inputMessage.value = "";
         loading.value = false;
-        lastAssistantIdx.value = null;
         lastSentMessage.value = "";
       } catch (e) {
         console.warn("newConversation error", e);
