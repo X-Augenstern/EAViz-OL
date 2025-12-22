@@ -80,6 +80,41 @@
         />
       </div>
     </div>
+    <el-backtop
+      target=".chat-container"
+      :right="22"
+      :bottom="22"
+      :visibility-height="100"
+      style="z-index: 9999"
+    >
+      <div
+        class="el-backtop__icon"
+        style="
+          width: 42px;
+          height: 42px;
+          border-radius: 10px;
+          background: linear-gradient(180deg, #6fc1ff, #2f8df9);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          font-size: 18px;
+        "
+      >
+        ↑
+      </div>
+    </el-backtop>
+    <teleport to="body">
+      <button
+        v-show="showBackTop"
+        class="teleport-backtop"
+        aria-label="回到顶部"
+        @click="animateScrollToTop(450)"
+        title="回到顶部"
+      >
+        ↑
+      </button>
+    </teleport>
   </div>
 </template>
 
@@ -149,6 +184,58 @@ onMounted(() => {
     // if there's a persisted session id, show it as the current lastChatId so UI displays badge/button
     lastChatId.value = v;
   }
+});
+
+// fallback back-to-top: show a teleported button if Element BackTop doesn't appear
+const showBackTop = ref(false);
+function updateBackTopVisibility() {
+  try {
+    showBackTop.value = window.scrollY > 120;
+  } catch (e) {
+    showBackTop.value = false;
+  }
+}
+function animateScrollToTop(duration = 450) {
+  const container = document.documentElement;
+  const start =
+    window.scrollY ||
+    document.documentElement.scrollTop ||
+    document.body.scrollTop ||
+    0;
+  if (start === 0) return;
+  const startTime = performance.now();
+  const easeInOutCubic = (t) =>
+    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+    const eased = easeInOutCubic(progress);
+    const current = Math.round(start * (1 - eased));
+    try {
+      window.scrollTo(0, current);
+      document.documentElement.scrollTop = current;
+      document.body.scrollTop = current;
+    } catch (e) {}
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+onMounted(() => {
+  try {
+    window.addEventListener("scroll", updateBackTopVisibility, {
+      passive: true,
+    });
+    updateBackTopVisibility();
+  } catch (e) {}
+});
+onBeforeUnmount(() => {
+  try {
+    window.removeEventListener("scroll", updateBackTopVisibility);
+  } catch (e) {}
 });
 
 const scrollToBottom = () => {
@@ -636,5 +723,71 @@ onBeforeUnmount(() => {
 
 .messages {
   padding-top: 72px; /* make room for top controls */
+}
+
+/* scroll-to-top floating button */
+.scroll-to-top {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #6fc1ff, #2f8df9);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(47, 141, 255, 0.12);
+  border: none;
+  z-index: 200;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+.scroll-to-top:active {
+  transform: translateY(1px) scale(0.98);
+}
+.scroll-to-top:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 16px 40px rgba(47, 141, 255, 0.16);
+}
+
+@media (max-width: 600px) {
+  .scroll-to-top {
+    right: 12px;
+    bottom: 12px;
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+}
+
+/* teleport fallback backtop */
+.teleport-backtop {
+  position: fixed;
+  right: 30px;
+  bottom: 30px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #6fc1ff, #2f8df9);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(47, 141, 255, 0.12);
+  border: none;
+  z-index: 99999;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+.teleport-backtop:active {
+  transform: translateY(1px) scale(0.98);
+}
+.teleport-backtop:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 16px 40px rgba(47, 141, 255, 0.16);
 }
 </style>
