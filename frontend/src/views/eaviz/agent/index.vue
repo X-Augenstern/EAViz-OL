@@ -144,7 +144,11 @@ const sessionChatId = ref(
 onMounted(() => {
   // restore sessionChatId from storage if present
   const v = localStorage.getItem("agent_session_chat_id");
-  if (v) sessionChatId.value = v;
+  if (v) {
+    sessionChatId.value = v;
+    // if there's a persisted session id, show it as the current lastChatId so UI displays badge/button
+    lastChatId.value = v;
+  }
 });
 
 const scrollToBottom = () => {
