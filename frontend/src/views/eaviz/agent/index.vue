@@ -325,8 +325,9 @@ const handleSend = async (externalMessage) => {
         console.warn("[Agent SSE] current message is not assistant:", current);
         return;
       }
-      // 直接拼接数据，不添加换行符（数据本身可能包含换行符）
-      current.content = (current.content || "") + data;
+      // 在不同 SSE 事件之间插入两个换行，保证每个步骤在界面上作为独立段落显示
+      const sep = current.content ? "\n\n" : "";
+      current.content = (current.content || "") + sep + data;
       scrollToBottom();
     };
 
@@ -341,10 +342,8 @@ const handleSend = async (externalMessage) => {
       const current = messages.value[idx];
       if (current) {
         if (!current.content) {
-          current.content = "抱歉，连接出现问题，请稍后再试。";
           ElMessage.error("服务连接失败，请稍后再试");
         } else {
-          current.content += "\n\n[连接已断开]";
           ElMessage.warning("连接已断开，部分内容可能未完整接收");
         }
       }
@@ -354,11 +353,6 @@ const handleSend = async (externalMessage) => {
     console.error("创建 SSE 连接失败:", error);
     ElMessage.error("无法连接到服务，请稍后再试");
     loading.value = false;
-    messages.value.push({
-      type: "assistant",
-      content: "抱歉，无法连接到服务，请稍后再试。",
-      timestamp: new Date(),
-    });
     scrollToBottom();
   }
 };
@@ -448,8 +442,23 @@ const newConversation = () => {
     });
 };
 
-const formatMessage = (content) =>
-  content ? content.replace(/\n/g, "<br>") : "";
+const formatMessage = (content) => {
+  if (!content) return "";
+  // Remove literal "data:" prefixes that may be embedded in agent messages
+  // and collapse multiple blank lines to a single blank line.
+  try {
+    let s = content;
+    // remove any occurrences of a line starting with "data:" (case-insensitive)
+    s = s.replace(/(^|\n)\s*data:\s*/gi, "$1");
+    // collapse more than 2 consecutive newlines to 2
+    s = s.replace(/\n{3,}/g, "\n\n");
+    // trim whitespace at ends
+    s = s.trim();
+    return s.replace(/\n/g, "<br>");
+  } catch (e) {
+    return content.replace(/\n/g, "<br>");
+  }
+};
 
 const formatTime = (ts) => {
   if (!ts) return "";
