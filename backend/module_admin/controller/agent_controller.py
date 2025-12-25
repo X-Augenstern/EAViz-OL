@@ -63,19 +63,6 @@ async def parse_cur_user_and_token(
     return user_name, token
 
 
-def extract_content(msg: str) -> str:
-    """提取SSE消息的实际内容，去掉data:前缀"""
-    if not msg:
-        return ""
-    # 提取data字段的实际内容（支持 "data: " 和 "data:" 两种格式）
-    if msg.startswith('data: '):
-        return msg[6:].strip()  # 去掉 "data: " 前缀
-    elif msg.startswith('data:'):
-        return msg[5:].strip()  # 去掉 "data:" 前缀
-    else:
-        return msg.strip()
-
-
 async def stream_agent_response(
         agent_url: str,
         params: dict,
@@ -165,52 +152,24 @@ async def stream_agent_response(
                             yield "data: [DONE]\n\n"
                             return
 
-                        # 直接按文本读取，让httpx处理编码
-                        buffer = ""
-
-                        async for chunk in response.aiter_text():
-                            if not chunk:
-                                continue
-
-                            buffer += chunk
-
-                            # 处理完整的SSE消息（以\n\n结尾）
-                            while '\n\n' in buffer:
-                                msg_end = buffer.find('\n\n')
-                                msg = buffer[:msg_end].strip()
-                                buffer = buffer[msg_end + 2:]
-
-                                if not msg:
+                        # Transparent passthrough: forward raw bytes from the Agent service to the frontend
+                        # without any protocol parsing or rewriting. This preserves all SSE event
+                        # boundaries and content exactly as produced by the upstream.
+                        try:
+                            async for chunk in response.aiter_bytes():
+                                if not chunk:
                                     continue
+                                # Yield the exact bytes chunk received from upstream
+                                yield chunk
+                        except Exception as e:
+                            logger.exception(f"[{request_id}] 读取上游流时出错 (bytes passthrough): {e}")
+                            # Optionally inform frontend minimally about interruption while keeping other content unchanged
+                            try:
+                                yield "\ndata: [ERROR] 上游数据流中断\n\n".encode("utf-8")
+                            except Exception:
+                                pass
 
-                                # 提取实际内容（去掉data:前缀）
-                                content = extract_content(msg)
-                                if not content:
-                                    continue
-
-                                # 发送实际内容，保持SSE格式
-                                if msg.startswith('event:') or msg.startswith('id:'):
-                                    # 其他SSE字段（虽然Java端不发送，但保留兼容性）
-                                    yield f"{msg}\n"
-                                elif msg.startswith(':'):
-                                    # 注释行，跳过
-                                    continue
-                                else:
-                                    # 发送实际内容（已去掉data:前缀）
-                                    yield f"data: {content}\n\n"
-
-                        # 处理流结束时的剩余buffer
-                        if buffer.strip():
-                            remaining = buffer.strip()
-                            # 提取实际内容（去掉data:前缀）
-                            content = extract_content(remaining)
-                            if content:
-                                # 发送实际内容，保持SSE格式
-                                yield f"data: {content}\n\n"
-
-                        # 发送结束标记
-                        yield "data: [DONE]\n\n"
-                        logger.info(f"[{request_id}] {log_prefix}SSE流式响应完成")
+                        logger.info(f"[{request_id}] {log_prefix}SSE流式响应完成（原始字节透传）")
                         # 成功处理完毕，跳出重试循环
                         break
                 except Exception as e:
