@@ -325,8 +325,9 @@ const handleSend = async (externalMessage) => {
         console.warn("[Agent SSE] current message is not assistant:", current);
         return;
       }
-      // 在不同 SSE 事件之间插入两个换行，保证每个步骤在界面上作为独立段落显示
-      const sep = current.content ? "\n\n" : "";
+      // 检测是否是步骤头【步骤N】，如果是的话再插入换行
+      const isStepHeader = /^【步骤\d+】/.test(data);
+      const sep = current.content && isStepHeader ? "\n\n" : "";
       current.content = (current.content || "") + sep + data;
       scrollToBottom();
     };
