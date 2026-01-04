@@ -438,14 +438,14 @@ watch(
           channelOptions.value = [];
         }
 
-        // 重置通道选择，默认选择F4
+        // 重置通道选择，默认选择T4
         if (channelOptions.value.length > 0) {
-          const f4Index = channelOptions.value.findIndex(
-            (ch) => ch.trim().toUpperCase() === "F4"
+          const t4Index = channelOptions.value.findIndex(
+            (ch) => ch.trim().toUpperCase() === "T4"
           );
-          if (f4Index >= 0) {
-            selectedChannelName.value = channelOptions.value[f4Index];
-            timeParams.chIdx = f4Index;
+          if (t4Index >= 0) {
+            selectedChannelName.value = channelOptions.value[t4Index];
+            timeParams.chIdx = t4Index;
           } else {
             selectedChannelName.value = channelOptions.value[0];
             timeParams.chIdx = 0;
