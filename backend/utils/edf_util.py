@@ -88,6 +88,8 @@ class EdfUtil:
             # raw.pick(picks=selected_channels)  # 会改变raw的通道，且通道名称会按list的指定顺序排列
 
             # 导出规范化后的.edf文件
+            # 注意：导出后的edf内部的数据会在极小的量级产生误差，但是对最终分析结果影响很小（可忽略）
+            # e.g. 900500 -> 901000
             raw.export(edf_path, overwrite=True)
 
             _, times = raw[:]
