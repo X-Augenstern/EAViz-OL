@@ -84,9 +84,10 @@ def mount_staticfiles(app: FastAPI):
             读取文件并返回给浏览器，最终渲染在页面上。
     """
     # 挂载下载目录，支持视频、图片等静态文件访问
+    # 使用 NoCacheStaticFiles 禁止缓存，确保每次分析都能显示最新的结果图片
     # StaticFiles 默认支持 HTTP Range 请求，这对于视频流式播放很重要
     app.mount(
         f"{UploadConfig.DOWNLOAD_PREFIX}",
-        StaticFiles(directory=f"{UploadConfig.DOWNLOAD_PATH}"),
+        NoCacheStaticFiles(directory=f"{UploadConfig.DOWNLOAD_PATH}"),
         name="analysis_res"
     )
