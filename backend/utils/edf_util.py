@@ -103,6 +103,7 @@ class EdfUtil:
             except Exception as remove_error:
                 logger.error(f'Failed to remove invalid .edf: {edf_path}. Error info: {str(remove_error)}')
             raise e
+
     @staticmethod
     def normal_filter(raw: RawEDF):
         """
