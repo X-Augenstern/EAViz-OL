@@ -39,6 +39,20 @@ class MyCronTrigger(CronTrigger):
 
         0 * * * * ?：每分钟执行一次
         0 0 3 * * ?：每天3点执行一次
+
+        追踪一下代码流转：
+        传入表达式 expr = "*/3 * * * * ?"
+        执行 values = expr.split()，此时 values[0] 的值就是字符串 "*/3"。
+        执行 second = values[0]，此时 second = "*/3"。
+        因为字符串 "*/3" 里没有 ?、L 这些你需要特殊处理的符号，所以代码对它什么都没做。
+        最后一步调用了 return cls(second=second, ...)，也就是把 second="*/3" 直接传给了父类（apscheduler.triggers.cron.CronTrigger）的构造函数。
+
+        APScheduler 底层的原生支持：
+        当父类 CronTrigger 接收到 second="*/3" 时，它底层的表达式解析器（StepExpression）会自动介入。在标准的 Cron 语法中：
+        * 表示“所有可能的值”（在秒这个维度，就是 0 到 59 秒）。
+        / 表示“步长（Step）”。
+        所以 */3 的意思是：在 0 到 59 秒的范围内，从 0 开始，每走 3 步触发一次（即第 0秒, 3秒, 6秒, 9秒... 都会触发）。
+        同理，如果在数据库里配的是 0/5 * * * * ?，传进去的就是 second="0/5"，APScheduler 也能完美识别，意思是“从 0 秒开始，每 5 秒触发一次”。
         """
         values = expr.split()
         if len(values) != 6 and len(values) != 7:

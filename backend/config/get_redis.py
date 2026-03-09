@@ -30,7 +30,10 @@ class RedisUtil:
             password=RedisConfig.redis_password,
             db=RedisConfig.redis_database,
             encoding="utf-8",
-            decode_responses=True
+            # 在Python的官方redis库中，默认情况下从Redis服务器获取的所有数据（无论是get还是rpop）返回的确实都是bytes（字节串），
+            # 比如 b'some-task-id'。这是因为Redis底层是用C语言写的，存储的是二进制安全的字节数组。
+            # 所以，在默认不配置的情况下，拿到数据后必须手动 .decode('utf-8') 才能变成Python的普通字符串str。
+            decode_responses=True  # 自动将返回的bytes解码为str
         )
         try:
             connection = await redis.ping()
