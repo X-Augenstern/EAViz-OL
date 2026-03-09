@@ -135,6 +135,8 @@ class RedisInitKeyConfig:
     PASSWORD_ERROR_COUNT = {'key': 'password_error_count', 'remark': '密码错误次数'}
     SMS_CODE = {'key': 'sms_code', 'remark': '短信验证码'}  # full key：sms_code:session_id | value：sms_code
     VIDEO_CLEANUP = {'key': 'video_cleanup', 'remark': '视频定时清理'}
+    EAVIZ_TASK = {'key': 'eaviz_task', 'remark': 'EAViz异步任务'}
+    ANALYSIS_QUEUE = {'key': 'analysis_queue', 'remark': '等待队列'}
 
 
 class EAVizSettings:
@@ -433,7 +435,8 @@ class AgentSettings:
     #   AGENT_K8S_INTERNAL_SUFFIXES (comma-separated, e.g. ".svc,.svc.cluster.local")
     INTERNAL_HOST_SET = set(getenv('AGENT_INTERNAL_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(','))
     # treat typical k8s internal suffixes as internal as well; override with AGENT_K8S_INTERNAL_SUFFIXES
-    K8S_INTERNAL_SUFFIXES = tuple(getenv('AGENT_K8S_INTERNAL_SUFFIXES', '.svc,.svc.cluster.local,.cluster.local').split(','))
+    K8S_INTERNAL_SUFFIXES = tuple(
+        getenv('AGENT_K8S_INTERNAL_SUFFIXES', '.svc,.svc.cluster.local,.cluster.local').split(','))
 
     # Control request URL/params logging level for upstream debug:
     # Set AGENT_REQUEST_LOG_LEVEL=INFO to log request URL/params at INFO level (useful in prod triage).
