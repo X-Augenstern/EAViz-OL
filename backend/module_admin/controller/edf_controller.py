@@ -74,6 +74,11 @@ async def import_system_edf(request: Request, query_db: Session = Depends(get_db
     导入Edf文件并添加到数据库
     """
     try:
+        """
+            在线与离线检测结果存在细微差别：
+            - 离线是直接基于导入的edf文件检测
+            - 在线是需要事先上传edf文件，经过规则化后存在服务器文件夹下（涉及到edf先导入后导出，导出的文件会与原文件有微小差别），再基于此文件进行检测
+        """
         upload_res = CommonService.upload_service(request, file)
 
         # 检查上传结果
