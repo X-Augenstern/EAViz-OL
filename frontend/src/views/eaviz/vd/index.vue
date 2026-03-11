@@ -259,8 +259,11 @@
             />
             <el-table-column prop="action" label="识别动作" align="center">
               <template #default="scope">
-                <el-tag type="success" size="large">
-                  {{ scope.row.action }}
+                <el-tag
+                  :type="getActionTagType(scope.row.action)"
+                  size="large"
+                >
+                  {{ formatActionLabel(scope.row.action) }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -584,6 +587,20 @@ function formatDuration(seconds) {
     ).padStart(2, "0")}`;
   }
   return `${minutes}:${String(secs).padStart(2, "0")}`;
+}
+
+// 根据动作类型获取标签颜色
+function getActionTagType(action) {
+  if (action === "Seizure") return "danger";
+  if (action === "Interictal") return "success";
+  return "info";
+}
+
+// 格式化动作标签显示中文
+function formatActionLabel(action) {
+  if (action === "Seizure") return "发作";
+  if (action === "Interictal") return "发作间期";
+  return action || "未知";
 }
 
 // 跳转到视频管理界面
